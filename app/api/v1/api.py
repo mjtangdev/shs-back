@@ -1,0 +1,32 @@
+from fastapi import APIRouter
+from app.api.v1.endpoints import hello, users, login, org, rates, customer, card, pos, solar_device
+
+api_router = APIRouter()
+
+# 把 hello 的路由挂载进来
+# 这里我们可以给它统一加上前缀和标签
+api_router.include_router(hello.router, prefix="/hello", tags=["Greeting"])
+
+
+api_router.include_router(login.router, prefix="/login", tags=["Authentication"])
+
+# 挂载 users 模块 (这就是你缺少的步骤)
+# prefix="/users" 意味着该文件下的所有接口都会带上这个前缀
+api_router.include_router(users.router, prefix="/user", tags=["Users Management"])
+
+
+
+api_router.include_router(org.router, prefix="/org", tags=["组织架构与业务主体"])
+
+api_router.include_router(customer.router, prefix="/customer", tags=["Customer"])
+
+api_router.include_router(rates.router, prefix="/rates", tags=["rates"])
+
+
+api_router.include_router(card.router, prefix="/card", tags=["IC Card"])
+
+api_router.include_router(pos.router, prefix="/pos", tags=["pos"])
+
+api_router.include_router(solar_device.router, prefix="/solar_device", tags=["solar device"])
+
+

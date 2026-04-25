@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16
+    container_name: shs_db_local
+    restart: always
+    environment:
+      - POSTGRES_USER=solar_admin
+      - POSTGRES_PASSWORD=Webdev123
+      - POSTGRES_DB=shs_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # 这样你在 Finder 里就能看到这个文件夹，数据物理存在你的 Mac 上
+      - ./postgres_data:/var/lib/postgresql/data
