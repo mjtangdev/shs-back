@@ -38,15 +38,31 @@ def get_customers(
         joinedload(Customer.region).joinedload(Region.parent)
     )
 
-    if region_id:
-        query = query.filter(Customer.region_id == region_id)
+    # 确定过滤的基础 region_id (业务员强制使用自身地区，管理员/财务使用参数)
+    filter_region_id = current_user.region_id if current_user.role == 2 else region_id
+
+    if filter_region_id is not None:
+        # 向下递归：包含本级及所有子级的 ID
+        allowed_ids = [filter_region_id]
+        
+        # 查找下一级子区域
+        children = db.query(Region.id).filter(Region.parent_id == filter_region_id).all()
+        if children:
+            child_ids = [c[0] for c in children]
+            allowed_ids.extend(child_ids)
+            # 继续查找下下级（如市下面的镇）
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+            
+        query = query.filter(Customer.region_id.in_(allowed_ids))
 
     if search:
         sf = f"%{search}%"
         query = query.filter(or_(
             Customer.first_name.ilike(sf),
             Customer.last_name.ilike(sf),
-            Customer.mobile.ilike(sf)
+            Customer.mobile.ilike(sf),
+            Customer.uuid.ilike(sf) # 支持使用统一的纯数字编号搜索
         ))
 
     total = query.count()

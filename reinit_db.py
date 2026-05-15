@@ -40,7 +40,8 @@ def seed_data():
                 mobile="09123456789",
                 role=1,         # 1 代表管理员权限
                 is_active=True,
-                province="Pangasinan"
+                province="Pangasinan",
+                region_id=0
             )
             db.add(new_admin)
             print("✅ Admin 用户已创建 (默认密码: admin123)")

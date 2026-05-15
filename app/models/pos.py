@@ -17,7 +17,7 @@ class POSMachine(Base):
     is_deleted = Column(Boolean, default=False) # 软删除标记：True 表示用户已删除，但在日志中保留
 
     # 归属信息
-    region_id = Column(String(50), nullable=True)     # 所属区域 ID
+    region_id = Column(Integer, nullable=True)     # 所属区域 ID (修正为 Integer 类型)
     branch_office = Column(String(100), nullable=True) # 所属分公司/网点名称
     
     # 审计信息

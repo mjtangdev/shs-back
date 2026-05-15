@@ -27,8 +27,7 @@ def create_superuser():
             email="admin@shs.com",
             role=1,  # 1: Admin, 2: Operator
             province="Pangasinan",
-            city_id=0, # 超级管理员可以不设具体的市
-            town_id=0, # 超级管理员可以不设具体的镇
+            region_id=0, # 超级管理员分配到顶级
             address="System Root"
         )
 

@@ -19,7 +19,7 @@ class Card(Base):
     status = Column(Integer, default=0, index=True)
     
     # 业务关联
-    customer_uuid = Column(String(50), index=True, nullable=True)
+    customer_uuid = Column(String(100), index=True, nullable=True)
 
     # 时间线
     created_at = Column(DateTime, default=datetime.now) # 入库时间

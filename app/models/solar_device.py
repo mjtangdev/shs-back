@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, BigInteger
+from sqlalchemy import Column, Integer, String, DateTime
 from datetime import datetime
 from app.db.base_class import Base
 
@@ -22,7 +22,8 @@ class SolarUnit(Base):
     led_status = Column(Integer, default=0, index=True)
 
     # 业务字段 (纯数据存储，不写 relationship)
-    customer_uuid = Column(BigInteger, index=True, nullable=True)
+    # 修改为 String(100) 以匹配 Customer 模型，防止 JS 精度丢失
+    customer_uuid = Column(String(100), index=True, nullable=True)
     customer_name = Column(String(100), nullable=True)
 
     # 地区信息

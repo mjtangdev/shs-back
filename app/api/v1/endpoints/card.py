@@ -30,6 +30,22 @@ def get_cards(
     ).options(
         joinedload(Card.customer).joinedload(Customer.region).joinedload(Region.parent)
     )
+    
+    # 业务员(Role 2) 隔离：只能看自己区域及下属区域的卡片(通过客户关联)
+    if current_user.role == 2:
+        if current_user.region_id is None:
+            return {"total": 0, "items": []} # 未分配区域的业务员无数据
+        
+        allowed_ids = [current_user.region_id]
+        children = db.query(Region.id).filter(Region.parent_id == current_user.region_id).all()
+        if children:
+            child_ids = [c[0] for c in children]
+            allowed_ids.extend(child_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+            
+        # 业务员可以看：1. 在库未绑定的空白卡(status=0)  2. 属于自己辖区客户的卡
+        query = query.filter(or_(Card.status == 0, Customer.region_id.in_(allowed_ids)))
 
     if status is not None:
         query = query.filter(Card.status == status)

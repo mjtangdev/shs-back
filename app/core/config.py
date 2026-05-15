@@ -1,8 +1,10 @@
 import os
 from typing import Optional
 
-class Settings:
-    SECRET_KEY = "your-super-secret-key-change-me"
+class Settings: 
+    # 确保 SECRET_KEY 至少为 32 字节 (例如 32 个字符)，HS256 算法要求 256 位密钥。
+    # 建议从环境变量加载，这里提供一个足够长的默认值。
+    SECRET_KEY = os.getenv("SECRET_KEY", "a_very_long_and_complex_secret_key_for_jwt_which_is_at_least_32_characters_long_and_secure")
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 

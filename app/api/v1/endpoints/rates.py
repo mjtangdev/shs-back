@@ -1,97 +1,97 @@
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from sqlalchemy.orm import Session
 from decimal import Decimal
-from datetime import datetime  # 导入 datetime 用于手动生成时间
+from datetime import datetime, timezone
 
-from app.api.deps import get_db, get_current_user, get_current_admin_user, get_finance_or_admin, get_current_admin_user
+from app.api.deps import (
+    get_db, 
+    get_current_user, 
+    get_finance_or_admin,
+)
 
-from app.models.config import GlobalRate
+from app.models.org import Region
 
 router = APIRouter()
 
 # 1. 获取当前最新费率 (管理员和财务均可访问)
-@router.get("/daily/current")
-def get_current_rate(
+@router.get("/daily/{region_id}")
+def get_region_rate(
+    region_id: int,
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user)
 ) -> Any:
-    """获取当前生效的最新费率"""
-    rate = db.query(GlobalRate).order_by(GlobalRate.id.desc()).first()
-    
-    if not rate:
-        return {"daily_rate": 0, "msg": "尚未设置初始费率", "updated_at": None}
-    
+    """获取指定地区的费率（已取消继承逻辑，仅返回本级费率）"""
+    region = db.query(Region).filter(Region.id == region_id).first()
+    if not region:
+        raise HTTPException(status_code=404, detail="Region not found")
+
+    rate_val = region.daily_rate
     return {
-        "id": rate.id,
-        "daily_rate": float(rate.daily_rate),
-        # 确保输出格式统一
-        "updated_at": rate.updated_at.strftime("%Y-%m-%d %H:%M:%S") if rate.updated_at else None,
-        "modifier_name": rate.modifier.username if rate.modifier else "系统",
-        "modifier_role": rate.modifier.role if rate.modifier else None
+        "region_id": region_id,
+        "region_name": region.name,
+        "daily_rate": float(rate_val) if rate_val else 0,
+        "updated_at": region.last_rate_updated_at
     }
 
-# 2. 获取费率修改历史记录 (管理员和财务均可访问)
-@router.get("/daily")
-def get_rate_history(
+# 修改为更符合 RESTful 的路径，并使用 Body 传参
+@router.patch("/daily/{region_id}")
+def update_daily_rate(
+    region_id: int,
+    new_rate: float = Body(..., embed=True, gt=0, description="新的费率值"),
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_finance_or_admin)
 ) -> Any:
-    """获取所有费率修改的历史列表"""
-    rates = (
-        db.query(GlobalRate)
-        .options(joinedload(GlobalRate.modifier))
-        .order_by(GlobalRate.id.desc())
-        .all()
-    )
-    
-    result = []
-    for r in rates:
-        result.append({
-            "id": r.id,
-            "daily_rate": float(r.daily_rate),
-            "updated_at": r.updated_at.strftime("%Y-%m-%d %H:%M:%S") if r.updated_at else None,
-            "modifier_name": r.modifier.username if r.modifier else "Admin",
-            "modifier_role": r.modifier.role if r.modifier else 1
-        })
-    return result
+    """更新指定地区的费率 - 仅限财务或管理员"""
+    region = db.query(Region).filter(Region.id == region_id).first()
+    if not region:
+        raise HTTPException(status_code=404, detail="Region not found")
 
-# 3. 修改费率 (仅限管理员访问)
-@router.post("/daily/update")
-def update_daily_rate(
-    *,
-    db: Session = Depends(get_db),
-    new_rate: float = Query(..., gt=0, description="新的费率值"),
-    current_user: Any = Depends(get_current_admin_user)
-) -> Any:
-    """新增费率记录，手动注入当前时间确保不会为 null"""
     try:
-        # ✅ 核心改动：在 Python 层获取当前时间，精确到秒
-        now = datetime.now()
+        region.daily_rate = Decimal(str(round(new_rate, 2)))
+        region.last_rate_updated_at = datetime.now(timezone.utc)
+        region.last_rate_modified_by_id = current_user.id
         
-        # 格式化费率数值
-        decimal_rate = Decimal(str(round(new_rate, 2)))
-        
-        # 创建新记录并手动指定 updated_at
-        new_record = GlobalRate(
-            daily_rate=decimal_rate,
-            last_modified_by_id=current_user.id,
-            updated_at=now  # 👈 这里直接赋值，不依赖数据库默认值
-        )
-        
-        db.add(new_record)
         db.commit()
-        db.refresh(new_record)
         
         return {
             "status": "success", 
-            "new_rate": float(new_record.daily_rate),
-            # 立即返回格式化后的时间
-            "updated_at": new_record.updated_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "region": region.name,
+            "new_rate": float(region.daily_rate),
             "operator": current_user.username
         }
     except Exception as e:
         db.rollback()
         # 抛出具体的 500 错误方便排查
         raise HTTPException(status_code=500, detail=f"Database write error: {str(e)}")
-    
+
+@router.patch("/global-sync")
+def sync_all_rates(
+    new_rate: float = Body(..., embed=True, gt=0, description="新的全局统一费率值"),
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+) -> Any:
+    """
+    一键同步全局费率：
+    批量将所有地区的费率更新为统一的数值。
+    """
+    try:
+        now = datetime.now(timezone.utc)
+        rate_dec = Decimal(str(round(new_rate, 2)))
+
+        # 批量更新所有地区的费率
+        updated_count = db.query(Region).update({
+            Region.daily_rate: rate_dec,
+            Region.last_rate_updated_at: now,
+            Region.last_rate_modified_by_id: current_user.id
+        }, synchronize_session=False)
+
+        db.commit()
+        return {
+            "status": "success",
+            "message": f"Successfully updated {updated_count} regions to the new global rate",
+            "global_rate": float(rate_dec)
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")

@@ -1,31 +1,28 @@
-from sqlalchemy import Column, Integer, Numeric, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime, Boolean
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-from app.db.base_class import Base
+from app.db.base_class import Base  # 假设 Base 在此路径 / Assuming Base is at this path
+from datetime import datetime
 
-class GlobalRate(Base):
-    """
-    全局费率配置表
-    存储费率的修改历史，每次修改都会新增一条记录。
-    """
-    __tablename__ = "global_rates"
+# 导入 User 模型，用于关联 / Import User model for relationship
+from app.models.users import User  # 假设 User 模型在此路径 / Assuming User model is at this path
 
-    # 主键 ID
+class ProviderConfig(Base):
+    """总公司/供应商配置模型 / Provider/Company Configuration Model"""
+    __tablename__ = "provider_configs"
+
     id = Column(Integer, primary_key=True, index=True)
     
-    # 每日费率，使用 Numeric 保证金额精度，10位有效数字，2位小数
-    daily_rate = Column(Numeric(10, 2), nullable=False)
-    
-    # 修改时间，自动记录创建时间
-    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+    # 新增字段 / New Fields
+    name = Column(String(255), nullable=False, index=True, comment="Provider/Company Name") # 必填 / Required
+    tin = Column(String(50), nullable=False, unique=True, index=True, comment="Tax Identification Number (TIN)") # 必填 / Required
+    logo_url = Column(String(255), nullable=True, comment="Storage path or URL of company logo (PNG)")
+    phone = Column(String(50), nullable=True, comment="Company contact phone number")
+    email = Column(String(100), nullable=True, comment="Company email address")
+    address = Column(Text, nullable=True, comment="Company physical address")
 
-    # 外键：关联到 users 表的 id 字段
-    last_modified_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # 标记该配置是否已被用户手动更新过
+    is_initialized = Column(Boolean, default=False, comment="Whether the config has been updated by user")
 
-    # --- 核心关联逻辑 ---
-    # 建立与 User 模型的映射关系
-    # 这样在代码中可以通过 rate.modifier 直接获取 User 对象（包含 username 和 role）
-    modifier = relationship("app.models.users.User", backref="rate_modifications")
-
-    def __repr__(self):
-        return f"<GlobalRate(id={self.id}, rate={self.daily_rate}, modifier_id={self.last_modified_by_id})>"
+    # 记录创建和更新时间 / Creation and update timestamps
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

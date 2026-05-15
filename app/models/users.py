@@ -10,12 +10,12 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(Integer, default=2)  # 1: Admin, 2: Operator
     is_active = Column(Boolean, default=True)
+    is_deleted = Column(Boolean, default=False, index=True)
     
     # 个人信息
     first_name = Column(String, nullable=False)
     middle_name = Column(String, nullable=True)
     last_name = Column(String, nullable=False)
-    position = Column(String, nullable=True)
     
     # 联系方式
     mobile = Column(String, nullable=False)
@@ -28,8 +28,7 @@ class User(Base):
 
    # 地理信息 (Geography) - 设为可选
     province = Column(String, default="Pangasinan")
-    city_id = Column(Integer, nullable=True)  # 城市 ID
-    town_id = Column(Integer, nullable=True)  # 镇/社区 ID
+    region_id = Column(Integer, nullable=True, index=True)  # 所属区域 ID
     address = Column(Text, nullable=True)      # 详细街道地址
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

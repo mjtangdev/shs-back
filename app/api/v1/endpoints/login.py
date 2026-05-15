@@ -3,16 +3,21 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 # 1. 导入项目依赖
 from app.api import deps
 from app.core.config import settings
 from app.core.auth_utils import verify_password, create_access_token, hash_password
-from app.models.users import User      
+from app.models.users import User
 from app.models.org import Region      
-from app.models.config import GlobalRate  # ✅ 新增：导入费率模型
+from app.models.config import ProviderConfig 
 
 router = APIRouter()
+
+class LoginJSONRequest(BaseModel):
+    username: str
+    password: str
 
 @router.post("/token")
 def login_access_token(
@@ -26,9 +31,9 @@ def login_access_token(
     """
     
     # --- [第一步：查找用户] ---
-    user = db.query(User).filter(User.username == form_data.username).first()
+    user = db.query(User).filter(User.username == form_data.username, User.is_deleted == False).first()
     if not user:
-        user = db.query(User).filter(User.email == form_data.username).first()
+        user = db.query(User).filter(User.email == form_data.username, User.is_deleted == False).first()
 
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or email")
@@ -45,26 +50,34 @@ def login_access_token(
     is_default_password = form_data.password == "admin123"
 
     # --- [第三步：初始化检查] ---
-    # 定义详细的初始化状态，方便前端展示具体的缺失项
+    # 将所有初始化项并入 setup_status，包括密码状态
     setup_status = {
+        "password_updated": not is_default_password, # 检查是否已修改默认密码
         "region_set": True,
-        "rate_set": True
+        "provider_config_set": True, # ✅ 新增：总公司配置检查
     }
-    need_init = False
 
-    # 仅针对管理员 (role == 1) 进行检查
+    # 针对管理员 (role == 1) 额外检查业务数据初始化
     if user.role == 1:
-        # 1. 检查地区（是否至少有一个省份记录）
-        province_exists = db.query(Region).filter(Region.level == 0).first()
-        if not province_exists:
+        # 1. 检查地区初始化：不但要存在顶级区域，且该区域必须已被改名（非默认的 "Pangasinan"）
+        # 这能确保管理员在系统启用前至少完成了一次地区配置
+        province = db.query(Region).filter(Region.level == 0).first()
+        if not province or province.name == "Pangasinan":
             setup_status["region_set"] = False
-            need_init = True
             
-        # 2. 检查费率（是否至少有一条费率记录）
-        rate_exists = db.query(GlobalRate).first()
-        if not rate_exists:
-            setup_status["rate_set"] = False
-            need_init = True
+        # 3. 检查总公司配置 (不仅要有记录，且必须是已初始化状态)
+        provider_config_exists = db.query(ProviderConfig).first()
+        if not provider_config_exists or not provider_config_exists.is_initialized:
+            setup_status["provider_config_set"] = False
+
+    # --- [获取当前用户的费率和地区名称] ---
+    daily_rate = 0.0
+    region_name = ""
+    if user.region_id:
+        region = db.query(Region).filter(Region.id == user.region_id).first()
+        if region:
+            daily_rate = float(region.daily_rate or 0.0)
+            region_name = region.full_name
 
     # --- [第四步：生成 Token] ---
     token_data = {"sub": str(user.id)}
@@ -74,18 +87,87 @@ def login_access_token(
     return {
         "access_token": token,
         "token_type": "bearer",
-        "need_init": need_init,
-        "setup_status": setup_status,  # ✅ 新增：告诉前端到底是哪个没设
-        "is_default_password": is_default_password, # ✅ 新增：标记是否需要强制改密
+        "setup_status": setup_status,  # 所有的初始化状态标志
         "user_role": user.role,        # ✅ 新增：方便前端做权限分流
-        "username": user.username
+        "username": user.username,
+        "user_id": user.id,            # ✅ 新增：将用户的 ID 下发给 POS 机本地缓存
+        "daily_rate": daily_rate,      # ✅ 新增：操作员当前所在地区的费率
+        "region_name": region_name     # ✅ 新增：操作员当前所在地区名称
     }
 
+
+@router.post("/token-json")
+def login_access_token_json(
+    req: LoginJSONRequest,
+    db: Session = Depends(deps.get_db)
+) -> Any:
+    """
+    专门为前端提供的 JSON 格式登录接口。
+    接收标准的 application/json 格式数据：{"username": "...", "password": "..."}
+    """
+    # --- [第一步：查找用户] ---
+    user = db.query(User).filter(User.username == req.username, User.is_deleted == False).first()
+    if not user:
+        user = db.query(User).filter(User.email == req.username, User.is_deleted == False).first()
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect username or email")
+    
+    # --- [第二步：验证密码] ---
+    if not verify_password(req.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect password")
+    
+    # 状态检查
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="User has been disabled")
+
+    # --- [检测是否为初始默认密码] ---
+    is_default_password = req.password == "admin123"
+
+    # --- [第三步：初始化检查] ---
+    setup_status = {
+        "password_updated": not is_default_password,
+        "region_set": True,
+        "provider_config_set": True,
+    }
+
+    if user.role == 1:
+        province = db.query(Region).filter(Region.level == 0).first()
+        if not province or province.name == "Pangasinan":
+            setup_status["region_set"] = False
+            
+        provider_config_exists = db.query(ProviderConfig).first()
+        if not provider_config_exists or not provider_config_exists.is_initialized:
+            setup_status["provider_config_set"] = False
+
+    # --- [获取当前用户的费率和地区名称] ---
+    daily_rate = 0.0
+    region_name = ""
+    if user.region_id:
+        region = db.query(Region).filter(Region.id == user.region_id).first()
+        if region:
+            daily_rate = float(region.daily_rate or 0.0)
+            region_name = region.full_name
+
+    # --- [第四步：生成 Token] ---
+    token_data = {"sub": str(user.id)}
+    token = create_access_token(data=token_data)
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "setup_status": setup_status,
+        "user_role": user.role,
+        "username": user.username,
+        "user_id": user.id,
+        "daily_rate": daily_rate,
+        "region_name": region_name
+    }
 
 @router.post("/emergency-reset-admin")
 def emergency_reset_admin_password(
     db: Session = Depends(deps.get_db), # 数据库会话依赖
-    current_user: User = Depends(deps.get_current_user) # 必须是已登录用户
+    current_user: User = Depends(deps.get_current_super_admin) # ✅ 使用专门的超级管理员依赖
 ) -> Any:
     """
     重置客户管理员密码。
@@ -93,13 +175,6 @@ def emergency_reset_admin_password(
     此接口仅限供应商超级管理员 (Role 0) 登录后执行。
     用途：用于供应商在远程支持时，帮客户重置丢失的 admin (Role 1) 账号密码为默认密码 'admin123'。
     """
-    # 权限校验：只有角色为 0 的供应商账号可以操作
-    if current_user.role != 0:
-        raise HTTPException(
-            status_code=403, 
-            detail="Permission denied: This reset operation is limited to Suppliers (Role 0)"
-        )
-
     admin_user = db.query(User).filter(User.username == "admin").first()
     if not admin_user:
         raise HTTPException(status_code=404, detail="Super administrator user does not exist.")

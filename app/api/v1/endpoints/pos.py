@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
@@ -24,6 +24,7 @@ def record_log(db: Session, sn: str, action: str, user: Any, remark: str = None)
     )
     db.add(log)
 
+
 # 内部辅助：SN 码格式化 (自动补 0)
 def format_pos_sn(sn: str) -> str:
     sn = sn.strip()
@@ -38,7 +39,7 @@ def get_pos(
     skip: int = 0, 
     limit: int = 50, 
     search: Optional[str] = None,
-    current_user: Any = Depends(get_current_user)
+    current_user: Any = Depends(get_finance_or_admin)
 ):
     query = db.query(POSMachine).filter(POSMachine.is_deleted == False)
     if search:
@@ -152,7 +153,7 @@ def delete_pos(pos_sn: str, db: Session = Depends(get_db), user: Any = Depends(g
 def get_pos_logs(
     pos_sn: str, 
     db: Session = Depends(get_db),
-    current_user: Any = Depends(get_current_user)
+    current_user: Any = Depends(get_finance_or_admin)
 ):
     return db.query(POSActionLog).filter(POSActionLog.pos_sn == pos_sn).order_by(POSActionLog.timestamp.desc()).all()
 
@@ -161,7 +162,7 @@ def get_pos_logs(
 async def import_pos(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db), 
-    user: Any = Depends(get_current_user)
+    user: Any = Depends(get_finance_or_admin)
 ):
     contents = await file.read()
     df = pd.read_excel(io.BytesIO(contents), dtype=str)
@@ -193,7 +194,7 @@ async def import_pos(
 @router.get("/export")
 def export_pos(
     db: Session = Depends(get_db), 
-    current_user: Any = Depends(get_current_user)
+    current_user: Any = Depends(get_finance_or_admin)
 ):
     machines = db.query(POSMachine).filter(POSMachine.is_deleted == False).all()
     rows = []

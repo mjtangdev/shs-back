@@ -9,6 +9,8 @@ from sqlalchemy import or_
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
 from app.models.solar_device import SolarUnit
+from app.models.customer import Customer
+from app.models.org import Region
 # 注意：即便不链接关系，我们可能仍需搜索 Customer 表，但暂时为了启动，我们只查 SolarUnit 本身
 from app.schemas.solar_device import SolarUnitCreate, SolarUnitResponse, SolarUnitList
 
@@ -23,8 +25,26 @@ def get_solar_units(
     status: Optional[int] = Query(None),
     current_user: Any = Depends(get_current_user)
 ):
-    # 彻底去掉关联查询（outerjoin / joinedload），只查 SolarUnit
-    query = db.query(SolarUnit)
+    # 恢复 outerjoin 以便进行地区数据隔离
+    query = db.query(SolarUnit).outerjoin(
+        Customer, SolarUnit.customer_uuid == Customer.uuid
+    )
+
+    # 业务员(Role 2) 隔离：只能看自己区域及下属区域的设备(通过客户关联)
+    if current_user.role == 2:
+        if current_user.region_id is None:
+            return {"total": 0, "items": []} # 未分配区域的业务员无数据
+        
+        allowed_ids = [current_user.region_id]
+        children = db.query(Region.id).filter(Region.parent_id == current_user.region_id).all()
+        if children:
+            child_ids = [c[0] for c in children]
+            allowed_ids.extend(child_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+            
+        # 业务员可以看：1. 在库未绑定的设备(shs_status=0)  2. 属于自己辖区客户的已绑定设备
+        query = query.filter(or_(SolarUnit.shs_status == 0, Customer.region_id.in_(allowed_ids)))
 
     if status is not None:
         query = query.filter(SolarUnit.shs_status == status)
@@ -100,28 +120,49 @@ async def import_solar_units(
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
     
     batch, skipped = [], []
-    # 预加载已存在的所有主机 ID 防止重复
-    exist_ids = {u[0] for u in db.query(SolarUnit.shs_machine_id).all()}
+    # 预加载已存在的全部 5 种配件 ID，防止违反唯一约束报错
+    exist_shs = {u[0] for u in db.query(SolarUnit.shs_machine_id).all() if u[0]}
+    exist_solar = {u[0] for u in db.query(SolarUnit.solar_equipment_id).all() if u[0]}
+    exist_radio = {u[0] for u in db.query(SolarUnit.radio_id).all() if u[0]}
+    exist_flash = {u[0] for u in db.query(SolarUnit.flashlight_id).all() if u[0]}
+    exist_led = {u[0] for u in db.query(SolarUnit.led_light_id).all() if u[0]}
     
     for idx, row in df.iterrows():
         shs_id = str(row.get('shs_machine_id', '')).strip()
-        if not shs_id or shs_id in exist_ids:
-            skipped.append(f"Row {idx+2}: Duplicate/Empty SHS ID")
+        solar_id = str(row.get('solar_equipment_id', '')).strip()
+        radio_id = str(row.get('radio_id', '')).strip()
+        flash_id = str(row.get('flashlight_id', '')).strip()
+        led_id = str(row.get('led_light_id', '')).strip()
+        
+        # 检查是否缺失必填的唯一标识
+        if not all([shs_id, solar_id, radio_id, flash_id, led_id]):
+            skipped.append(f"Row {idx+2}: Missing one or more required equipment IDs")
+            continue
+            
+        # 检查是否和数据库内数据（或当前 Excel 之前的行）重复
+        if (shs_id in exist_shs or solar_id in exist_solar or 
+            radio_id in exist_radio or flash_id in exist_flash or led_id in exist_led):
+            skipped.append(f"Row {idx+2}: One or more IDs already exist in the system (Duplicate)")
             continue
         
         # 将行数据转为模型
         batch.append(SolarUnit(
             shs_machine_id=shs_id, 
-            solar_equipment_id=str(row.get('solar_equipment_id', '')),
-            radio_id=str(row.get('radio_id', '')),
-            flashlight_id=str(row.get('flashlight_id', '')),
-            led_light_id=str(row.get('led_light_id', '')),
+            solar_equipment_id=solar_id,
+            radio_id=radio_id,
+            flashlight_id=flash_id,
+            led_light_id=led_id,
             # 日期转换，如果失败则用当前时间
             production_date=pd.to_datetime(row.get('production_date', datetime.now()), errors='coerce') or datetime.now(),
             shs_status=0, 
             created_at=datetime.now()
         ))
-        exist_ids.add(shs_id)
+        # 加入缓存，防止同一次导入文件内的相互重复
+        exist_shs.add(shs_id)
+        exist_solar.add(solar_id)
+        exist_radio.add(radio_id)
+        exist_flash.add(flash_id)
+        exist_led.add(led_id)
 
     if batch:
         db.add_all(batch)
