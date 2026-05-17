@@ -2,14 +2,17 @@ import io
 import pandas as pd
 from datetime import datetime
 from typing import Any, Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
 from app.models.pos import POSMachine, POSActionLog
+from app.models.users import User
 from app.schemas.pos import POSCreate, POSUpdate, POSResponse, POSList, POSLockRequest, POSLogResponse
+from app.core.ratelimit import limiter
+from fastapi import Request
 
 router = APIRouter()
 
@@ -32,6 +35,54 @@ def format_pos_sn(sn: str) -> str:
         return "0" + sn
     return sn
 
+
+# --- 0. 公开查询接口 (用于 POS 静默检测) ---
+@router.get("/check/{pos_sn}")
+@limiter.limit("5/minute")
+def check_pos_existence(request: Request, pos_sn: str, db: Session = Depends(get_db)):
+    """
+    公开接口：查询 POS 是否在系统中登记。
+    不要求权限校验，供 POS 终端静默发起。
+    设置了限流：每个 IP 每分钟最多查询 5 次。
+    """
+    sn = format_pos_sn(pos_sn)
+    pos = db.query(POSMachine).options(joinedload(POSMachine.assigned_user)).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
+
+    if not pos:
+        return {
+            "exists": False,
+            "pos_sn": sn,
+            "status": None,
+            "lock_status": None,
+            "branch_office": None,
+            "reconciliation_deadline": None,
+            "assigned_user_id": None,
+            "assigned_user_name": None,
+            "message": "Device not registered"
+        }
+
+    # --- 自动对账锁定逻辑 ---
+    if pos.reconciliation_deadline and datetime.utcnow() > pos.reconciliation_deadline:
+        if pos.lock_status == 0:
+            pos.lock_status = 2  # 自动设为财务锁
+            pos.last_lock_reason = "System: Reconciliation deadline expired"
+            pos.last_action_by = "SYSTEM"
+            record_log(db, pos.pos_sn, "AUTO_LOCK", "SYSTEM", "Reconciliation deadline expired")
+            db.commit()
+
+    return {
+        "exists": True,
+        "pos_sn": pos.pos_sn,
+        "status": pos.status,
+        "lock_status": pos.lock_status,
+        "branch_office": pos.branch_office,
+        "reconciliation_deadline": pos.reconciliation_deadline,
+        "assigned_user_id": pos.assigned_user_id,
+        "assigned_user_name": f"{pos.assigned_user.first_name} {pos.assigned_user.last_name}" if pos.assigned_user else None,
+        "message": "Device found"
+    }
+
+
 # --- 1. 查询列表 ---
 @router.get("/", response_model=POSList)
 def get_pos(
@@ -41,13 +92,19 @@ def get_pos(
     search: Optional[str] = None,
     current_user: Any = Depends(get_finance_or_admin)
 ):
-    query = db.query(POSMachine).filter(POSMachine.is_deleted == False)
+    query = db.query(POSMachine).options(joinedload(POSMachine.assigned_user)).filter(POSMachine.is_deleted == False)
     if search:
         sf = f"%{search}%"
         query = query.filter(or_(POSMachine.pos_sn.ilike(sf), POSMachine.branch_office.ilike(sf)))
     
     total = query.count()
     items = query.order_by(POSMachine.created_at.desc()).offset(skip).limit(limit).all()
+    
+    # 填充分配的用户名
+    for item in items:
+        if item.assigned_user:
+            item.assigned_user_name = f"{item.assigned_user.first_name} {item.assigned_user.last_name}"
+
     return {"total": total, "items": items}
 
 # --- 2. 手动创建 POS (Finance/Admin) ---
@@ -66,8 +123,9 @@ def create_pos(
         if existing.is_deleted:
             # 如果机器曾被删除，则复活它
             existing.is_deleted = False
-            existing.status = pos_in.status or 0
+            existing.status = 1 if pos_in.assigned_user_id else (pos_in.status or 0)
             existing.branch_office = pos_in.branch_office
+            existing.assigned_user_id = pos_in.assigned_user_id
             record_log(db, sn, "CREATE_RECOVER", user, "Re-activated deleted device")
         else:
             raise HTTPException(400, "POS SN already exists in system")
@@ -76,17 +134,18 @@ def create_pos(
         new_pos = POSMachine(
             pos_sn=sn,
             branch_office=pos_in.branch_office,
-            status=pos_in.status or 0,
+            status=1 if pos_in.assigned_user_id else (pos_in.status or 0),
+            assigned_user_id=pos_in.assigned_user_id,
             created_by=user.username
         )
         db.add(new_pos)
-        record_log(db, sn, "CREATE", user, "Manually created device")
+        record_log(db, sn, "CREATE", user, f"Manually created device{' and assigned' if pos_in.assigned_user_id else ''}")
 
     db.commit()
     return {"status": "success", "pos_sn": sn}
 
-# --- 3. 编辑 POS (PUT / {pos_sn}) ---
-@router.put("/{pos_sn}")
+# --- 3. 编辑 POS (PATCH / {pos_sn}) ---
+@router.patch("/{pos_sn}")
 def update_pos(
     pos_sn: str,
     pos_in: POSUpdate,
@@ -102,6 +161,21 @@ def update_pos(
     # 记录修改日志的备注
     changes = []
     for field, value in update_data.items():
+        # 1. 自动同步逻辑：assigned_user_id -> status
+        if field == "assigned_user_id":
+            if value and pos.status == 0:
+                pos.status = 1 # 自动设为 Assigned
+                changes.append("status: 0 -> 1 (Auto-assign)")
+            elif not value and pos.status == 1:
+                pos.status = 0 # 自动回库
+                changes.append("status: 1 -> 0 (Auto-unassign)")
+
+        # 2. 自动同步逻辑：根据 lock_status 记录专门的审计动作
+        if field == "lock_status" and value != pos.lock_status:
+            action = "LOCK" if value != 0 else "UNLOCK"
+            changes.append(f"Security: {pos.lock_status} -> {value}")
+            # 注意：这里我们只把变化加入备注，PATCH 接口的主动作仍是 UPDATE
+
         old_val = getattr(pos, field)
         if old_val != value:
             setattr(pos, field, value)
@@ -114,28 +188,65 @@ def update_pos(
 
     return {"status": "success", "pos_sn": pos_sn}
 
-# --- 4. 独立锁定 (Finance/Admin) ---
+# --- 4. 独立锁定 (支持任意 Admin 密码授权) ---
 @router.post("/lock")
-def lock_pos(req: POSLockRequest, db: Session = Depends(get_db), user: Any = Depends(get_finance_or_admin)):
+def lock_pos(
+    req: POSLockRequest, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_finance_or_admin)
+):
+    from app.core.security import verify_password
+    
+    # 查找所有管理员 (Role 0 或 1)
+    admins = db.query(User).filter(User.role.in_([0, 1]), User.is_active == True, User.is_deleted == False).all()
+    
+    # 校验密码是否匹配任意一个管理员
+    authorized_admin = next((a for a in admins if verify_password(req.password, a.password_hash)), None)
+    
+    if not authorized_admin:
+        raise HTTPException(401, "Authorization failed: No administrator account matches this password")
+
     pos = db.query(POSMachine).filter(POSMachine.pos_sn == req.pos_sn, POSMachine.is_deleted == False).first()
     if not pos: raise HTTPException(404, "Device not found")
     
-    # 0, 1 -> Admin Lock (1); 2 -> Finance Lock (2)
-    pos.lock_status = 1 if user.role in [0, 1] else 2
-    record_log(db, pos.pos_sn, "LOCK", user, req.remark)
+    # 锁定设备
+    pos.lock_status = 1 if authorized_admin.role in [0, 1] else 2
+    pos.last_lock_reason = req.remark or "Manual security lockout"
+    pos.last_action_by = current_user.username
+    
+    # 审计日志：记录是谁授权的，备注中记录执行者
+    record_log(db, pos.pos_sn, "MANUAL_LOCK", authorized_admin, 
+               f"Authorized by {authorized_admin.username}. Executed by {current_user.username}. Remark: {req.remark}")
+    
     db.commit()
-    return {"status": "success", "lock_status": pos.lock_status}
+    return {"status": "success", "lock_status": pos.lock_status, "authorized_by": authorized_admin.username}
 
-# --- 5. 独立解锁 (Finance/Admin) ---
+# --- 5. 独立解锁 (支持任意 Admin 密码授权) ---
 @router.post("/unlock")
-def unlock_pos(req: POSLockRequest, db: Session = Depends(get_db), user: Any = Depends(get_finance_or_admin)):
+def unlock_pos(
+    req: POSLockRequest, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_finance_or_admin)
+):
+    from app.core.security import verify_password
+    
+    admins = db.query(User).filter(User.role.in_([0, 1]), User.is_active == True, User.is_deleted == False).all()
+    authorized_admin = next((a for a in admins if verify_password(req.password, a.password_hash)), None)
+    
+    if not authorized_admin:
+        raise HTTPException(401, "Authorization failed: No administrator account matches this password")
+
     pos = db.query(POSMachine).filter(POSMachine.pos_sn == req.pos_sn).first()
     if not pos: raise HTTPException(404, "Device not found")
     
     pos.lock_status = 0
-    record_log(db, pos.pos_sn, "UNLOCK", user, req.remark)
+    pos.last_lock_reason = req.remark or "Manual security restoration"
+    pos.last_action_by = current_user.username
+    record_log(db, pos.pos_sn, "MANUAL_UNLOCK", authorized_admin, 
+               f"Authorized by {authorized_admin.username}. Executed by {current_user.username}. Remark: {req.remark}")
+    
     db.commit()
-    return {"status": "success"}
+    return {"status": "success", "authorized_by": authorized_admin.username}
 
 # --- 6. 软删除 (Finance/Admin) ---
 @router.delete("/{pos_sn}")
@@ -220,3 +331,82 @@ def export_pos(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={file_name}"}
     )
+
+
+# --- 10. 财务对账操作 ---
+
+@router.post("/{pos_sn}/reconcile")
+def confirm_reconciliation(
+    pos_sn: str,
+    next_deadline: Optional[datetime] = Body(None, embed=True),
+    db: Session = Depends(get_db),
+    user: Any = Depends(get_finance_or_admin)
+):
+    """
+    财务确认对账：
+    1. 解除财务锁 (lock_status = 2)
+    2. 更新最后对账时间
+    3. (可选) 设置下一次对账截止日期
+    """
+    pos = db.query(POSMachine).filter(POSMachine.pos_sn == pos_sn).first()
+    if not pos: raise HTTPException(404, "POS not found")
+
+    pos.last_reconciliation_at = datetime.utcnow()
+    if pos.lock_status == 2:
+        pos.lock_status = 0 # 自动解除财务锁
+    
+    if next_deadline:
+        pos.reconciliation_deadline = next_deadline
+    
+    record_log(db, pos_sn, "RECONCILE_SUCCESS", user, f"Reconciliation confirmed. Next deadline: {next_deadline}")
+    db.commit()
+    return {"status": "success", "last_reconciled": pos.last_reconciliation_at}
+
+
+@router.post("/{pos_sn}/set-deadline")
+def set_pos_deadline(
+    pos_sn: str,
+    deadline: datetime = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    user: Any = Depends(get_finance_or_admin)
+):
+    """手动设置或延长对账截止日期"""
+    pos = db.query(POSMachine).filter(POSMachine.pos_sn == pos_sn).first()
+    if not pos: raise HTTPException(404, "POS not found")
+
+    pos.reconciliation_deadline = deadline
+    record_log(db, pos_sn, "SET_DEADLINE", user, f"Deadline set to: {deadline}")
+    db.commit()
+    return {"status": "success", "deadline": pos.reconciliation_deadline}
+
+
+@router.post("/{pos_sn}/assign")
+def assign_user_to_pos(
+    pos_sn: str,
+    user_id: Optional[int] = Body(None, embed=True),
+    db: Session = Depends(get_db),
+    user: Any = Depends(get_finance_or_admin)
+):
+    """
+    将 POS 机分配/绑定给特定用户 (业务员、管理员等)
+    传递 user_id 为空则表示解绑。
+    """
+    pos = db.query(POSMachine).filter(POSMachine.pos_sn == pos_sn).first()
+    if not pos: raise HTTPException(404, "POS not found")
+
+    if user_id:
+        target_user = db.query(User).filter(User.id == user_id).first()
+        if not target_user: raise HTTPException(404, "User not found")
+        pos.assigned_user_id = user_id
+        pos.status = 1 # Assigned
+        action = "ASSIGN"
+        remark = f"Assigned to user: {target_user.username}"
+    else:
+        pos.assigned_user_id = None
+        pos.status = 0 # Back to Stock
+        action = "UNASSIGN"
+        remark = "Unassigned from user"
+
+    record_log(db, pos_sn, action, user, remark)
+    db.commit()
+    return {"status": "success", "assigned_user_id": pos.assigned_user_id}

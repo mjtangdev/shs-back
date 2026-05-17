@@ -26,6 +26,7 @@ class Customer(Base):
     total_recharged_days = Column(Numeric(10, 2), default=0, comment="累计充值天数")
     total_recharged_amount = Column(Numeric(10, 2), default=0, comment="累计充值金额")
     created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # 关键：建立与 Region 的 ORM 桥梁
     region = relationship("Region", back_populates="customers")

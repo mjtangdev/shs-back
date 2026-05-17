@@ -13,19 +13,17 @@ sys.path.insert(0, BASE_DIR)
 from app.core.config import settings
 from app.db.base_class import Base 
 
-# --- 3. 核心：导入所有模型 (基于你最新的核对) ---
+# --- 3. 核心：导入所有模型以使 Alembic 能够检测到它们 ---
 try:
     from app.models.users import User
-    # 区域与子公司
-    from app.models.region_subsidiary import Region, Subsidiary 
-    # 客户模型 (已改为单数 customer)
+    from app.models.org import Region, BusinessEntity
     from app.models.customer import Customer
-    # IC卡模型
     from app.models.card import Card
-    # POS 机器与日志
     from app.models.pos import POSMachine, POSActionLog
-    # 费率模型 (已改为 config)
-    from app.models.config import GlobalRate
+    from app.models.config import ProviderConfig
+    from app.models.solar_device import SolarUnit
+    from app.models.transaction import TransactionLog
+    from app.models.pos_staging import POSStagingTransaction, POSStagingCustomer
     
     print("✅ 所有模型导入成功")
 except ImportError as e:
@@ -52,7 +50,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection, 
             target_metadata=target_metadata,
-            compare_type=True  # 能够检测字段类型变化（如长度增加）
+            compare_type=True  # 能够检测字段类型变化
         )
 
         with context.begin_transaction():

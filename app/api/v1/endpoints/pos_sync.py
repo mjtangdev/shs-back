@@ -14,7 +14,7 @@ from app.models.card import Card # 导入 Card 模型
 from app.models.solar_device import SolarUnit # 导入 SolarUnit 模型
 from app.models.customer import Customer
 from app.models.transaction import TransactionLog
-from app.schemas.pos import POSSyncResponse, POSSyncCustomerItem, POSSyncUploadRequest
+from app.schemas.pos import POSSyncResponse, POSSyncCustomerItem, POSSyncUploadRequest, POSSyncCardItem, POSSyncSolarUnitItem
 from app.schemas.config import ProviderConfigRead
 from snowflake import SnowflakeGenerator
 
@@ -228,3 +228,48 @@ def upload_offline_data(
         "staged_customers": staged_cust_count,
         "server_time": datetime.now()
     }
+
+
+# --- 专供 POS 分批拉取接口 (支持游标分页与增量同步) ---
+
+@router.get("/customers", response_model=List[POSSyncCustomerItem])
+def sync_customers(
+    since_id: int = Query(0, description="从哪个 ID 开始拉取"),
+    limit: int = Query(100, le=500),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_operator_user)
+):
+    """
+    分批读取客户表：
+    1. 使用 since_id 进行游标分页，解决数据漂移问题。
+    2. 自动根据业务员所属区域过滤客户。
+    """
+    query = db.query(Customer).filter(Customer.id > since_id)
+    
+    # 业务员只能看到自己区域的客户
+    if current_user.role == 2:
+        query = query.filter(Customer.region_id == current_user.region_id)
+        
+    return query.order_by(Customer.id.asc()).limit(limit).all()
+
+
+@router.get("/cards", response_model=List[POSSyncCardItem])
+def sync_cards(
+    since_id: int = Query(0),
+    limit: int = Query(100, le=500),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_operator_user)
+):
+    """分批读取卡片表"""
+    return db.query(Card).filter(Card.id > since_id).order_by(Card.id.asc()).limit(limit).all()
+
+
+@router.get("/solar-devices", response_model=List[POSSyncSolarUnitItem])
+def sync_solar_devices(
+    since_id: int = Query(0),
+    limit: int = Query(100, le=500),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_operator_user)
+):
+    """分批读取设备表"""
+    return db.query(SolarUnit).filter(SolarUnit.id > since_id).order_by(SolarUnit.id.asc()).limit(limit).all()

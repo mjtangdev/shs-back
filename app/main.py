@@ -4,9 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 # 导入你的 API 路由
 from app.api.v1.api import api_router
+from app.core.ratelimit import limiter
 from app.models.config import ProviderConfig # 导入 ProviderConfig 模型
 from app.models.org import Region # 导入 Region 模型
 from app.models.pos_staging import POSStagingTransaction, POSStagingCustomer # 导入暂存模型
@@ -33,6 +36,8 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # --- [ 跨域配置 ] ---
 app.add_middleware(

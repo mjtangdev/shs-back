@@ -7,20 +7,22 @@ class POSBase(BaseModel):
     pos_sn: str
 
 class POSCreate(POSBase):
-    # 与数据库模型对齐，如果 region_id 在模型中是 Integer，这里建议后续改为 int
     region_id: Optional[int] = None 
     branch_office: Optional[str] = None
     status: Optional[int] = 0
+    assigned_user_id: Optional[int] = None
 
 class POSUpdate(BaseModel):
-    """用于 PUT 编辑的校验模型"""
+    """用于 PATCH 编辑的校验模型"""
     region_id: Optional[int] = None
     branch_office: Optional[str] = None
     status: Optional[int] = None
-    # 通常 pos_sn 是主键/唯一标识，不建议在 Update 中修改
+    assigned_user_id: Optional[int] = None
+    lock_status: Optional[int] = None
 
 class POSLockRequest(BaseModel):
     pos_sn: str
+    password: str
     remark: Optional[str] = None
 
 class POSResponse(POSBase):
@@ -28,6 +30,16 @@ class POSResponse(POSBase):
     lock_status: int
     region_id: Optional[int] = None
     branch_office: Optional[str] = None
+    assigned_user_id: Optional[int] = None
+    assigned_user_name: Optional[str] = None
+    last_lock_reason: Optional[str] = None
+    last_action_by: Optional[str] = None
+    last_login_at: Optional[datetime] = None
+    last_ip: Optional[str] = None
+    mac_address: Optional[str] = None
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    app_version: Optional[str] = None
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
@@ -47,26 +59,35 @@ class POSList(BaseModel):
 # --- POS 同步专用模型 ---
 
 class POSSyncCustomerItem(BaseModel):
+    id: int # 数据库物理ID，用于 since_id 翻页
     uuid: str
-    full_name: str
+    first_name: str
+    last_name: str
     card_uuid: Optional[str] = None
     shs_machine_id: Optional[str] = None
     status: int  # 1: 活跃, 0: 停用
-    expiry_date: Optional[datetime] = None # 👈 增加到期时间
+    expiry_date: Optional[datetime] = None 
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 class POSSyncCardItem(BaseModel):
+    id: int
     card_number: str
     card_uuid: str
+    customer_uuid: Optional[str] = None
+    status: int
+    updated_at: datetime
+    
     model_config = ConfigDict(from_attributes=True)
 
 class POSSyncSolarUnitItem(BaseModel):
+    id: int
     shs_machine_id: str
-    solar_equipment_id: str
-    radio_id: str
-    flashlight_id: str
-    led_light_id: str
+    customer_uuid: Optional[str] = None
+    shs_status: int
+    updated_at: datetime
+
     model_config = ConfigDict(from_attributes=True)
 
 class POSSyncResponse(BaseModel):
@@ -98,6 +119,8 @@ class POSOfflineTransaction(BaseModel):
     transaction_time: datetime
     action_type: str            # RECHARGE (充值), COLLECT (收款) 等
     operator_username: str      # 强制必填：离线操作的实际业务员用户名
+    latitude: Optional[str] = None  # 离线记录的纬度
+    longitude: Optional[str] = None # 离线记录的经度
 
 class POSOfflineCustomerCreate(BaseModel):
     uuid: str
@@ -113,6 +136,16 @@ class POSOfflineCustomerCreate(BaseModel):
     shs_machine_id: Optional[str] = None # 离线绑定的设备
     created_at: datetime                 # POS 端的实际操作时间
     operator_username: str               # 强制必填：离线操作的实际业务员用户名
+
+class POSLoginRequest(BaseModel):
+    username: str
+    password: str
+    pos_sn: str
+    latitude: Optional[str] = None
+    longitude: Optional[str] = None
+    app_version: Optional[str] = None
+    version_type: Optional[str] = None
+    mac_address: Optional[str] = None
 
 class POSSyncUploadRequest(BaseModel):
     pos_sn: Optional[str] = None

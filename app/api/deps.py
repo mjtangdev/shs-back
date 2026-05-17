@@ -55,6 +55,12 @@ def get_current_operator_user(current_user: User = Depends(get_current_user)) ->
         raise HTTPException(status_code=403, detail="Permission denied: Operator access only")
     return current_user
 
+# 新增：管理层(4)权限校验
+def get_current_management_user(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != 4:
+        raise HTTPException(status_code=403, detail="Permission denied: Management access only")
+    return current_user
+
 # 4级安检：仅限超级管理员(0) (仅用于应急操作)
 def get_current_super_admin(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != 0:

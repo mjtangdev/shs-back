@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import hello, users, login, org, customer, card, pos, solar_device, provider, apk, pos_sync, finance
+from app.api.v1.endpoints import hello, users, login, org, customer, card, pos, solar_device, provider, apk, pos_sync, finance, pos_terminal
 
 api_router = APIRouter()
 
@@ -22,6 +22,9 @@ api_router.include_router(customer.router, prefix="/customer", tags=["Customer"]
 api_router.include_router(card.router, prefix="/card", tags=["IC Card"])
 
 api_router.include_router(pos.router, prefix="/pos", tags=["pos"])
+
+# 挂载 POS 终端专用接口 (登录、状态检查)
+api_router.include_router(pos_terminal.router, prefix="/pos-terminal", tags=["POS Terminal"])
 
 api_router.include_router(solar_device.router, prefix="/solar_device", tags=["solar device"])
 

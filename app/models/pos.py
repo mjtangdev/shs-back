@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text
+from sqlalchemy import Column, String, Integer, DateTime, Boolean, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base_class import Base
 
@@ -20,6 +21,27 @@ class POSMachine(Base):
     region_id = Column(Integer, nullable=True)     # 所属区域 ID (修正为 Integer 类型)
     branch_office = Column(String(100), nullable=True) # 所属分公司/网点名称
     
+    # 对账管控 (Reconciliation Control)
+    reconciliation_deadline = Column(DateTime, nullable=True) # 对账截止时间
+    last_reconciliation_at = Column(DateTime, nullable=True)  # 上次对账成功时间
+    
+    # 锁定审计快照 (用于列表页直观显示)
+    last_lock_reason = Column(String(255), nullable=True)
+    last_action_by = Column(String(50), nullable=True)
+
+    # 强绑定用户信息 (Strong Binding)
+    assigned_user_id = Column(Integer, ForeignKey("users.id"), nullable=True) # 绑定的用户 ID
+    assigned_user = relationship("User", foreign_keys=[assigned_user_id], back_populates="pos_machine")
+
+    # POS 运行状态监控 (新增)
+    last_login_at = Column(DateTime, nullable=True)
+    last_ip = Column(String(50), nullable=True)
+    app_version = Column(String(20), nullable=True)
+    version_type = Column(String(20), nullable=True) # 新增：Standard 或 Premium
+    mac_address = Column(String(30), nullable=True) # 新增 MAC 地址字段
+    latitude = Column(String(20), nullable=True)    # 纬度
+    longitude = Column(String(20), nullable=True)   # 经度
+
     # 审计信息
     created_at = Column(DateTime, default=datetime.utcnow)
     created_by = Column(String(50), nullable=True)

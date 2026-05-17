@@ -10,7 +10,7 @@ class UserBase(BaseModel):
     email: Optional[EmailStr] = None
     
     # --- 核心业务字段 ---
-    role: int = 2  # 1: Admin, 2: Operator, 3: Finance
+    role: int = 2  # 0:SuperAdmin, 1:Admin, 2:Operator, 3:Finance, 4:Management
     
     # --- 地理信息 ---
     province: Optional[str] = "Pangasinan"
@@ -35,6 +35,7 @@ class UserRead(UserBase):
     city_name: Optional[str] = None
     town_name: Optional[str] = None
     entity_name: Optional[str] = None  # 👈 这里带入子公司/主体名称
+    pos_sn: Optional[str] = None # 👈 这里带入绑定的 POS SN
 
     model_config = ConfigDict(from_attributes=True)
 

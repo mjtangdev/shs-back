@@ -30,6 +30,10 @@ def enrich_user_response(db: Session, user: User) -> dict:
             # 核心改进：如果该地区关联了子公司，带入其名称
             if region.entity:
                 data["entity_name"] = region.entity.name
+    
+    # 注入绑定的 POS 信息
+    if user.pos_machine:
+        data["pos_sn"] = user.pos_machine.pos_sn
                 
     return data
 
