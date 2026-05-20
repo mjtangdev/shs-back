@@ -84,6 +84,10 @@ class POSSyncCardItem(BaseModel):
 class POSSyncSolarUnitItem(BaseModel):
     id: int
     shs_machine_id: str
+    solar_equipment_id: Optional[str] = None
+    radio_id: Optional[str] = None
+    flashlight_id: Optional[str] = None
+    led_light_id: Optional[str] = None
     customer_uuid: Optional[str] = None
     shs_status: int
     updated_at: datetime

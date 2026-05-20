@@ -70,14 +70,20 @@ def login_access_token(
         if not provider_config_exists or not provider_config_exists.is_initialized:
             setup_status["provider_config_set"] = False
 
-    # --- [获取当前用户的费率和地区名称] ---
+    # --- [获取当前用户的费率和地区名称 (支持递归继承)] ---
     daily_rate = 0.0
     region_name = ""
     if user.region_id:
         region = db.query(Region).filter(Region.id == user.region_id).first()
         if region:
-            daily_rate = float(region.daily_rate or 0.0)
             region_name = region.full_name
+            # 递归向上寻找费率
+            curr = region
+            while curr:
+                if curr.daily_rate is not None:
+                    daily_rate = float(curr.daily_rate)
+                    break
+                curr = curr.parent
 
     # --- [第四步：生成 Token] ---
     token_data = {"sub": str(user.id)}
@@ -140,14 +146,20 @@ def login_access_token_json(
         if not provider_config_exists or not provider_config_exists.is_initialized:
             setup_status["provider_config_set"] = False
 
-    # --- [获取当前用户的费率和地区名称] ---
+    # --- [获取当前用户的费率和地区名称 (支持递归继承)] ---
     daily_rate = 0.0
     region_name = ""
     if user.region_id:
         region = db.query(Region).filter(Region.id == user.region_id).first()
         if region:
-            daily_rate = float(region.daily_rate or 0.0)
             region_name = region.full_name
+            # 递归向上寻找费率
+            curr = region
+            while curr:
+                if curr.daily_rate is not None:
+                    daily_rate = float(curr.daily_rate)
+                    break
+                curr = curr.parent
 
     # --- [第四步：生成 Token] ---
     token_data = {"sub": str(user.id)}

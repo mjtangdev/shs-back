@@ -54,6 +54,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 # 定义 Logo 文件的物理存储路径
 LOGO_PHYSICAL_DIR = PROJECT_ROOT / "static" / "uploads" / "logos"
 
+# 确保静态文件目录存在，避免 StaticFiles 挂载时由于目录不存在而报错退出
+LOGO_PHYSICAL_DIR.mkdir(parents=True, exist_ok=True)
+
 # 挂载静态文件目录，将 /static URL 路径映射到 LOGO_PHYSICAL_DIR
 app.mount("/static", StaticFiles(directory=LOGO_PHYSICAL_DIR), name="static")
 

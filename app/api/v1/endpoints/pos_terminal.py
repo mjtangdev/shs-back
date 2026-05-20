@@ -79,14 +79,20 @@ def pos_terminal_login(
         if not provider_config_exists or not provider_config_exists.is_initialized:
             setup_status["provider_config_set"] = False
 
-    # --- 5. 获取地区费率 ---
+    # --- 5. 获取地区费率 (支持递归向上继承) ---
     daily_rate = 0.0
     region_name = ""
     if user.region_id:
         region = db.query(Region).filter(Region.id == user.region_id).first()
         if region:
-            daily_rate = float(region.daily_rate or 0.0)
             region_name = region.full_name
+            # 递归向上寻找费率
+            curr = region
+            while curr:
+                if curr.daily_rate is not None:
+                    daily_rate = float(curr.daily_rate)
+                    break
+                curr = curr.parent
 
     # --- 6. 生成 Token ---
     token_data = {"sub": str(user.id)}

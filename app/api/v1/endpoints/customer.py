@@ -243,12 +243,17 @@ def export_customers(
     export_data = []
 
     for c in customers:
-        city, town = "-", "-"
+        barangay, purok = "-", "-"
         if c.region:
             if c.region.level == 2 and c.region.parent:
-                city, town = c.region.parent.name, c.region.name
+                # Level 2 is Purok, its parent is Barangay
+                barangay, purok = c.region.parent.name, c.region.name
+            elif c.region.level == 1:
+                # Level 1 is Barangay
+                barangay = c.region.name
             else:
-                city = c.region.name
+                # Level 0 is Municipality
+                barangay = c.region.name
 
         export_data.append({
             "Customer ID": c.uuid,
@@ -256,8 +261,8 @@ def export_customers(
             "Last Name": c.last_name,
             "Gender": c.gender,
             "Mobile": c.mobile,
-            "City": city,
-            "Town": town,
+            "Barangay": barangay,
+            "Purok": purok,
             "Card UUID": "-",
             "SHS Machine": "-",
             "Solar Equipment": "-",

@@ -140,17 +140,21 @@ def export_cards(
     
     rows = []
     for c in cards:
-        city, town, name = "-", "-", "-"
+        barangay, purok, name = "-", "-", "-"
         if c.customer:
             name = f"{c.customer.first_name} {c.customer.last_name}"
             if c.customer.region:
-                city = c.customer.region.parent.name if (c.customer.region.level==2 and c.customer.region.parent) else c.customer.region.name
-                town = c.customer.region.name if c.customer.region.level==2 else "-"
+                if c.customer.region.level == 2 and c.customer.region.parent:
+                    barangay, purok = c.customer.region.parent.name, c.customer.region.name
+                else:
+                    barangay = c.customer.region.name
         
         rows.append({
             "Card Number": c.card_number, "Card UUID": c.card_uuid,
             "Status": status_map.get(c.status, "Unknown"),
-            "Customer": name, "City": city, "Town": town,
+            "Customer": name, 
+            "Barangay": barangay, 
+            "Purok": purok,
             "Created Date": c.created_at.strftime("%Y-%m-%d") if c.created_at else "-",
             "Bound Date": c.bound_at.strftime("%Y-%m-%d") if c.bound_at else "-"
         })

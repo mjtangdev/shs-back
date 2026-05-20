@@ -25,6 +25,7 @@ PyJWT==2.12.1
 python-dateutil==2.9.0.post0
 python-multipart==0.0.24
 six==1.17.0
+slowapi
 snowflake-id==1.0.2
 SQLAlchemy==2.0.49
 starlette==1.0.0

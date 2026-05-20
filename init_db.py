@@ -12,6 +12,7 @@ from app.models.pos_staging import POSStagingTransaction, POSStagingCustomer
 from app.core.auth_utils import hash_password
 from datetime import datetime
 import random
+from snowflake import SnowflakeGenerator
 
 # ==========================================
 # 配置开关：是否自动创建测试数据 (地区树、业务员、随机客户)
@@ -19,14 +20,20 @@ import random
 # ==========================================
 IS_AUTO_CREATE_TESTDATA = True
 
-# 用于记录本次运行已生成的 ID，防止碰撞
-generated_ids = set()
+# 初始化雪花算法生成器 (Worker ID=1)
+snowflake_gen = SnowflakeGenerator(1)
 
 def get_snowflake_id():
-    import time
+    """使用雪花算法生成 ID (同主程序)"""
+    return str(next(snowflake_gen))
+
+# 用于记录本次运行已生成的 4 位 ID，防止碰撞
+generated_ids = set()
+
+def get_4digit_id():
+    """生成唯一的 4 位纯数字 ID (用于设备)"""
     while True:
-        # 纳秒级精度 + 随机数
-        new_id = str(int(time.time() * 1000000) + random.randint(0, 9999))
+        new_id = f"{random.randint(1000, 9999)}"
         if new_id not in generated_ids:
             generated_ids.add(new_id)
             return new_id
@@ -43,33 +50,33 @@ def init_db():
         if IS_AUTO_CREATE_TESTDATA:
             print("🧪 正在以 [测试数据模式] 初始化数据库...")
             
-            # 1. 地区树 (江苏)
-            province = Region(name="Jiangsu", level=0)
-            db.add(province)
+            # 1. 地区树 (示例：菲律宾层级)
+            municipality = Region(name="Pangasinan Municipality", level=0, daily_rate=20.0) 
+            db.add(municipality)
             db.flush()
 
-            cities = {
-                "Suzhou": ["Gusu", "Huqiu", "Wuzhong"],
-                "Wuxi": ["Liangxi", "Binhu", "Xinwu"]
+            barangays = {
+                "Barangay Alpha": ["Purok 1", "Purok 2", "Purok 3"],
+                "Barangay Beta": ["Purok 4", "Purok 5", "Purok 6"]
             }
 
             test_regions = []
-            for city_name, districts in cities.items():
-                city = Region(name=city_name, level=1, parent_id=province.id)
-                db.add(city)
+            for brgy_name, puroks in barangays.items():
+                brgy = Region(name=brgy_name, level=1, parent_id=municipality.id, daily_rate=25.0)
+                db.add(brgy)
                 db.flush()
-                for dist_name in districts:
-                    dist = Region(name=dist_name, level=2, parent_id=city.id)
-                    db.add(dist)
+                for purok_name in puroks:
+                    purok = Region(name=purok_name, level=2, parent_id=brgy.id, daily_rate=30.0)
+                    db.add(purok)
                     db.flush()
-                    test_regions.append(dist)
+                    test_regions.append(purok)
 
-            # 2. 账号初始化 (fina & regional operators)
+            # 账号初始化 (fina & regional operators)
             db.add(User(
                 username="fina",
                 password_hash=hash_password("test123"),
                 first_name="Finance", last_name="Manager",
-                role=3, mobile="09888888888", region_id=province.id,
+                role=3, mobile="09888888888", region_id=municipality.id,
                 is_active=True
             ))
 
@@ -97,9 +104,9 @@ def init_db():
                         region_id=reg.id, status=1, created_at=datetime.now()
                     ))
             
-            # 基础管理员绑定到江苏
-            base_region_id = province.id
-            provider_name = "SHS Jiangsu Branch"
+            # 基础管理员绑定到根节点
+            base_region_id = municipality.id
+            provider_name = "SHS Philippines Branch"
 
         else:
             print("✨ 正在以 [纯净模式] 初始化数据库...")
@@ -118,6 +125,7 @@ def init_db():
             role=0, mobile="1111111111", region_id=base_region_id,
             is_active=True
         ))
+        print("✅ 已创建超级管理员: sysadmin")
 
         db.add(User(
             username="admin",
@@ -126,6 +134,7 @@ def init_db():
             role=1, mobile="09123456789", region_id=base_region_id,
             is_active=True
         ))
+        print("✅ 已创建管理员: admin")
 
         db.add(ProviderConfig(
             name=provider_name,
@@ -151,16 +160,16 @@ def init_db():
             # --- 新增：生成 5 套设备 / Generate 5 sets of solar devices ---
             for i in range(1, 6):
                 db.add(SolarUnit(
-                    shs_machine_id=f"SHS-M-00{i}",
-                    solar_equipment_id=f"SLR-E-00{i}",
-                    radio_id=f"RAD-00{i}",
-                    flashlight_id=f"FLS-00{i}",
-                    led_light_id=f"LED-00{i}",
+                    shs_machine_id=get_4digit_id(),
+                    solar_equipment_id=get_4digit_id(),
+                    radio_id=get_4digit_id(),
+                    flashlight_id=get_4digit_id(),
+                    led_light_id=get_4digit_id(),
                     production_date=datetime.now(),
                     shs_status=0, # In Stock
                     created_at=datetime.now()
                 ))
-            print("✅ 已创建 5 套测试设备 (SHS-M-001 ~ 005)")
+            print("✅ 已创建 5 套测试设备 (纯数字 4 位 ID)")
 
         db.commit()
         print(f"\n🎉 数据库初始化成功！(测试数据模式: {IS_AUTO_CREATE_TESTDATA})")
