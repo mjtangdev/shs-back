@@ -23,6 +23,7 @@ class SolarUnitItem(BaseModel):
     flashlight_id: str
     led_light_id: str
     status: int
+    customer_id: Optional[int] = None # 新增：客户内部ID，用于跳转
     customer_uuid: Optional[str] = "-"
     customer_name: Optional[str] = "-"
     city_name: Optional[str] = "-"

@@ -8,14 +8,16 @@ class Settings:
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
-    # 对应你 Docker 配置中的参数
-    POSTGRES_USER = "solar_admin"
-    POSTGRES_PASSWORD = "Webdev123"
-    POSTGRES_SERVER = "127.0.0.1"
-    POSTGRES_PORT = "5432"
-    POSTGRES_DB = "shs_db"
+    # 对应你 Docker 配置中的参数，优先从环境变量读取
+    POSTGRES_USER = os.getenv("POSTGRES_USER", "solar_admin")
+    POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "Webdev123")
+    POSTGRES_SERVER = os.getenv("POSTGRES_SERVER", "127.0.0.1")
+    POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
+    POSTGRES_DB = os.getenv("POSTGRES_DB", "shs_db")
 
     # 动态拼接成 SQLAlchemy 需要的 URI 格式
-    SQLALCHEMY_DATABASE_URI = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERVER}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
 settings = Settings()

@@ -23,4 +23,4 @@ class TransactionLog(Base):
     
     pos_sn = Column(String(16), index=True)
     operator_username = Column(String(50), index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now)

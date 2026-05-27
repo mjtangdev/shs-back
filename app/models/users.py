@@ -32,7 +32,7 @@ class User(Base):
     region_id = Column(Integer, nullable=True, index=True)  # 所属区域 ID
     address = Column(Text, nullable=True)      # 详细街道地址
     
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=datetime.now)
 
     # 关联 POS 机 (一对一)
     pos_machine = relationship("POSMachine", back_populates="assigned_user", uselist=False)

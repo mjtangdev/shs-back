@@ -24,7 +24,7 @@ class POSStagingTransaction(Base):
     pos_sn = Column(String(16), index=True)
     operator_username = Column(String(50), index=True)
     
-    upload_time = Column(DateTime, default=datetime.utcnow) # 数据上传到后台的时间
+    upload_time = Column(DateTime, default=datetime.now) # 数据上传到后台的时间
     
     # 数据库层面强制金额大于0
     __table_args__ = ({"check_constraint": "amount > 0"}),
@@ -58,9 +58,13 @@ class POSStagingCustomer(Base):
     region_id = Column(Integer, ForeignKey("regions.id"), index=True, nullable=False)
     status = Column(Integer, default=1) # 客户状态，默认为活跃
 
+    beneficiary_count = Column(Integer, default=0)
+    representative_name = Column(String(100), nullable=True)
+    rep_relationship = Column(String(50), default="-")
+
     pos_sn = Column(String(16), index=True)
     operator_username = Column(String(50), index=True)
 
-    upload_time = Column(DateTime, default=datetime.utcnow)
+    upload_time = Column(DateTime, default=datetime.now)
     processed_status = Column(Integer, default=0) # 0: Pending, 1: Processed, 2: Failed
     processing_error = Column(Text, nullable=True)

@@ -49,7 +49,7 @@ def update_daily_rate(
 
     try:
         region.daily_rate = Decimal(str(round(new_rate, 2)))
-        region.last_rate_updated_at = datetime.now(timezone.utc)
+        region.last_rate_updated_at = datetime.now()
         region.last_rate_modified_by_id = current_user.id
         
         db.commit()
@@ -76,7 +76,7 @@ def sync_all_rates(
     批量将所有地区的费率更新为统一的数值。
     """
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
         rate_dec = Decimal(str(round(new_rate, 2)))
 
         # 批量更新所有地区的费率

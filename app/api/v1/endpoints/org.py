@@ -35,7 +35,7 @@ def update_region_rate(
     try:
         # 强制控制在小数点后两位并转为 Decimal
         region.daily_rate = Decimal(str(round(new_rate, 2)))
-        region.last_rate_updated_at = datetime.now(timezone.utc)
+        region.last_rate_updated_at = datetime.now()
         region.last_rate_modified_by_id = current_user.id
         
         db.commit()
@@ -59,7 +59,7 @@ def sync_all_region_rates(
     此接口用于自动化统一整体费率，特别是系统初始化地区但未设置费率时。
     """
     try:
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
         # 强制控制在小数点后两位并转为高精度 Decimal
         rate_dec = Decimal(str(round(new_rate, 2)))
 

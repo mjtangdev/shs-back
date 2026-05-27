@@ -56,7 +56,8 @@ def seed_data():
             print(f"正在创建基础区域: {region_name}...")
             new_reg = Region(
                 name=region_name, 
-                level=0  # 0 代表省级
+                level=0,  # 0 代表省级
+                daily_rate=7.0
             )
             db.add(new_reg)
             print(f"✅ 基础省份 {region_name} 已创建")

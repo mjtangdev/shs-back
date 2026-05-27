@@ -1,11 +1,11 @@
 import io
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Body
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
 from app.models.pos import POSMachine, POSActionLog
@@ -62,7 +62,7 @@ def check_pos_existence(request: Request, pos_sn: str, db: Session = Depends(get
         }
 
     # --- 自动对账锁定逻辑 ---
-    if pos.reconciliation_deadline and datetime.utcnow() > pos.reconciliation_deadline:
+    if pos.reconciliation_deadline and datetime.now() > pos.reconciliation_deadline:
         if pos.lock_status == 0:
             pos.lock_status = 2  # 自动设为财务锁
             pos.last_lock_reason = "System: Reconciliation deadline expired"
@@ -333,6 +333,9 @@ def export_pos(
     )
 
 
+from app.models.transaction import TransactionLog
+from sqlalchemy import func
+
 # --- 10. 财务对账操作 ---
 
 @router.post("/{pos_sn}/reconcile")
@@ -343,41 +346,96 @@ def confirm_reconciliation(
     user: Any = Depends(get_finance_or_admin)
 ):
     """
-    财务确认对账：
-    1. 解除财务锁 (lock_status = 2)
-    2. 更新最后对账时间
-    3. (可选) 设置下一次对账截止日期
+    财务确认对账 (解锁接口)：
+    1. 计算自上次对账以来的交易总额
+    2. 解除财务锁 (lock_status 2 -> 0)
+    3. 更新最后对账时间
+    4. 允许设置下次截止日期
     """
     pos = db.query(POSMachine).filter(POSMachine.pos_sn == pos_sn).first()
     if not pos: raise HTTPException(404, "POS not found")
 
-    pos.last_reconciliation_at = datetime.utcnow()
-    if pos.lock_status == 2:
-        pos.lock_status = 0 # 自动解除财务锁
+    # A. 统计自上次对账以来的流水金额
+    start_time = pos.last_reconciliation_at or pos.created_at
+    total_unreconciled = db.query(func.sum(TransactionLog.amount)).filter(
+        TransactionLog.pos_sn == pos_sn,
+        TransactionLog.transaction_time > start_time
+    ).scalar() or 0
+
+    # B. 执行状态变更 (这是解锁的唯一入口)
+    pos.last_reconciliation_at = datetime.now()
+    pos.lock_status = 0 # 无论当前是什么锁，对账成功即解锁
     
     if next_deadline:
         pos.reconciliation_deadline = next_deadline
     
-    record_log(db, pos_sn, "RECONCILE_SUCCESS", user, f"Reconciliation confirmed. Next deadline: {next_deadline}")
+    msg = f"Reconciled amount: PHP {total_unreconciled}. Status reset to NORMAL."
+    record_log(db, pos_sn, "RECONCILE_SUCCESS", user, msg)
+    
     db.commit()
-    return {"status": "success", "last_reconciled": pos.last_reconciliation_at}
+    return {
+        "status": "success", 
+        "amount_reconciled": float(total_unreconciled),
+        "last_reconciled": pos.last_reconciliation_at
+    }
 
 
 @router.post("/{pos_sn}/set-deadline")
 def set_pos_deadline(
     pos_sn: str,
-    deadline: datetime = Body(..., embed=True),
+    deadline: Optional[datetime] = Body(None, embed=True),
+    days: Optional[int] = Body(None, embed=True),
     db: Session = Depends(get_db),
     user: Any = Depends(get_finance_or_admin)
 ):
-    """手动设置或延长对账截止日期"""
+    """
+    手动设置或延长对账截止日期。
+    支持直接传日期(deadline)或传天数(days)。
+    """
     pos = db.query(POSMachine).filter(POSMachine.pos_sn == pos_sn).first()
     if not pos: raise HTTPException(404, "POS not found")
 
-    pos.reconciliation_deadline = deadline
-    record_log(db, pos_sn, "SET_DEADLINE", user, f"Deadline set to: {deadline}")
+    target_date = deadline
+    if days is not None:
+        target_date = datetime.now() + timedelta(days=days)
+    
+    if not target_date:
+        raise HTTPException(400, "Either 'deadline' or 'days' must be provided")
+
+    pos.reconciliation_deadline = target_date
+    record_log(db, pos_sn, "SET_DEADLINE", user, f"Deadline updated to: {target_date} ({days} days extension)")
     db.commit()
     return {"status": "success", "deadline": pos.reconciliation_deadline}
+
+
+@router.post("/batch/set-deadline")
+def set_global_pos_deadline(
+    deadline: Optional[datetime] = Body(None, embed=True),
+    days: Optional[int] = Body(None, embed=True),
+    db: Session = Depends(get_db),
+    user: Any = Depends(get_finance_or_admin)
+):
+    """
+    全局设置：统一更新所有 POS 机的对账截止日期。
+    常用于统一对账日（例如：每个周一）。
+    """
+    target_date = deadline
+    if days is not None:
+        target_date = datetime.now() + timedelta(days=days)
+    
+    if not target_date:
+        raise HTTPException(400, "Either 'deadline' or 'days' must be provided")
+
+    # 更新所有未删除的 POS 机
+    db.query(POSMachine).filter(POSMachine.is_deleted == False).update({
+        POSMachine.reconciliation_deadline: target_date
+    }, synchronize_session=False)
+
+    # 记录全局日志
+    record_log(db, "SYSTEM", "BATCH_SET_DEADLINE", user, f"Global deadline updated to: {target_date}")
+    
+    db.commit()
+    return {"status": "success", "target_date": target_date}
 
 
 @router.post("/{pos_sn}/assign")

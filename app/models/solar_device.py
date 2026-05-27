@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base_class import Base
 
@@ -21,12 +22,19 @@ class SolarUnit(Base):
     flashlight_status = Column(Integer, default=0, index=True)
     led_status = Column(Integer, default=0, index=True)
 
-    # 业务字段 (纯数据存储，不写 relationship)
-    # 修改为 String(100) 以匹配 Customer 模型，防止 JS 精度丢失
+    # 业务字段
     customer_uuid = Column(String(100), index=True, nullable=True)
     customer_name = Column(String(100), nullable=True)
 
-    # 地区信息
+    # 逻辑关联 Customer
+    customer = relationship(
+        "Customer", 
+        primaryjoin="SolarUnit.customer_uuid == Customer.uuid", 
+        foreign_keys=[customer_uuid],
+        viewonly=True
+    )
+
+    # 地区信息 (静态备份)
     city = Column(String(100), index=True, nullable=True)
     town = Column(String(100), index=True, nullable=True)
 

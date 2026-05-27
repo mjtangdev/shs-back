@@ -14,6 +14,7 @@ class CardResponse(CardBase):
     card_number: str
     card_uuid: str
     status: int
+    customer_id: Optional[int] = None # Added for frontend navigation
     customer_uuid: Optional[str] = None
     customer_name: Optional[str] = "-"
     city_name: Optional[str] = "-"

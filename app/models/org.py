@@ -12,7 +12,7 @@ class Region(Base):
     parent_id = Column(Integer, ForeignKey("regions.id"), nullable=True)
 
     # 费率配置融合 / Rate Configuration Fusion
-    daily_rate = Column(Numeric(10, 2), nullable=True, comment="区域专属费率，若为Null则继承上级")
+    daily_rate = Column(Numeric(10, 2), nullable=True, default=7.0, comment="区域专属费率，若为Null则继承上级")
     last_rate_updated_at = Column(DateTime, nullable=True)
     last_rate_modified_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 

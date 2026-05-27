@@ -51,7 +51,7 @@ def init_db():
             print("🧪 正在以 [测试数据模式] 初始化数据库...")
             
             # 1. 地区树 (示例：菲律宾层级)
-            municipality = Region(name="Pangasinan Municipality", level=0, daily_rate=20.0) 
+            municipality = Region(name="Pangasinan Municipality", level=0, daily_rate=7.0) 
             db.add(municipality)
             db.flush()
 
@@ -62,11 +62,11 @@ def init_db():
 
             test_regions = []
             for brgy_name, puroks in barangays.items():
-                brgy = Region(name=brgy_name, level=1, parent_id=municipality.id, daily_rate=25.0)
+                brgy = Region(name=brgy_name, level=1, parent_id=municipality.id, daily_rate=7.0)
                 db.add(brgy)
                 db.flush()
                 for purok_name in puroks:
-                    purok = Region(name=purok_name, level=2, parent_id=brgy.id, daily_rate=30.0)
+                    purok = Region(name=purok_name, level=2, parent_id=brgy.id, daily_rate=7.0)
                     db.add(purok)
                     db.flush()
                     test_regions.append(purok)
@@ -91,27 +91,34 @@ def init_db():
                 ))
                 print(f"✅ 已创建业务员: {u_name} (所属区域: {reg.name})")
 
+            # 基础管理员绑定到根节点
+            base_region_id = municipality.id
+            provider_name = "SHS Philippines Branch"
+
             # 3. 随机客户 (每区10人)
             first_names = ["James", "Robert", "John", "Michael", "David", "William", "Richard", "Joseph", "Thomas", "Christopher"]
             last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"]
             for reg in test_regions:
                 for _ in range(10):
+                    f_name = random.choice(first_names)
+                    l_name = random.choice(last_names)
                     db.add(Customer(
                         uuid=get_snowflake_id(),
-                        first_name=random.choice(first_names), last_name=random.choice(last_names),
+                        first_name=f_name, last_name=l_name,
                         gender=random.choice(["male", "female"]),
                         mobile=f"09{random.randint(100000000, 999999999)}",
-                        region_id=reg.id, status=1, created_at=datetime.now()
+                        region_id=reg.id, status=1, 
+                        electric_company=provider_name,
+                        beneficiary_count=random.randint(1, 5),
+                        representative_name=f"{f_name} {l_name}",
+                        rep_relationship="-",
+                        created_at=datetime.now()
                     ))
-            
-            # 基础管理员绑定到根节点
-            base_region_id = municipality.id
-            provider_name = "SHS Philippines Branch"
 
         else:
             print("✨ 正在以 [纯净模式] 初始化数据库...")
             # 1. 基础根区域
-            root_region = Region(name="Pangasinan", level=0)
+            root_region = Region(name="Pangasinan", level=0, daily_rate=7.0)
             db.add(root_region)
             db.flush()
             base_region_id = root_region.id
@@ -135,6 +142,15 @@ def init_db():
             is_active=True
         ))
         print("✅ 已创建管理员: admin")
+
+        db.add(User(
+            username="manager",
+            password_hash=hash_password("test123"),
+            first_name="Exec", last_name="Manager",
+            role=4, mobile="09222222222", region_id=base_region_id,
+            is_active=True
+        ))
+        print("✅ 已创建管理层: manager")
 
         db.add(ProviderConfig(
             name=provider_name,

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
@@ -21,44 +21,51 @@ def get_solar_units(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 50,
+    region_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
     status: Optional[int] = Query(None),
     current_user: Any = Depends(get_current_user)
 ):
-    # 恢复 outerjoin 以便进行地区数据隔离
+    # 联表查询：SolarUnit -> Customer -> Region
     query = db.query(SolarUnit).outerjoin(
         Customer, SolarUnit.customer_uuid == Customer.uuid
+    ).options(
+        joinedload(SolarUnit.customer).joinedload(Customer.region).joinedload(Region.parent)
     )
 
-    # 业务员(Role 2) 隔离：只能看自己区域及下属区域的设备(通过客户关联)
+    # 确定过滤的基础 region_id
+    filter_region_id = region_id
     if current_user.role == 2:
-        if current_user.region_id is None:
-            return {"total": 0, "items": []} # 未分配区域的业务员无数据
-        
-        allowed_ids = [current_user.region_id]
-        children = db.query(Region.id).filter(Region.parent_id == current_user.region_id).all()
+        filter_region_id = current_user.region_id
+
+    if filter_region_id is not None:
+        # 递归获取子区域 ID
+        allowed_ids = [filter_region_id]
+        children = db.query(Region.id).filter(Region.parent_id == filter_region_id).all()
         if children:
-            child_ids = [c[0] for c in children]
-            allowed_ids.extend(child_ids)
-            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            c_ids = [c[0] for c in children]
+            allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
             allowed_ids.extend([sc[0] for sc in sub_children])
-            
-        # 业务员可以看：1. 在库未绑定的设备(shs_status=0)  2. 属于自己辖区客户的已绑定设备
-        query = query.filter(or_(SolarUnit.shs_status == 0, Customer.region_id.in_(allowed_ids)))
+        
+        # 业务员隔离逻辑：可以看在库(0)或自己区域的设备
+        if current_user.role == 2:
+            query = query.filter(or_(SolarUnit.shs_status == 0, Customer.region_id.in_(allowed_ids)))
+        else:
+            query = query.filter(Customer.region_id.in_(allowed_ids))
 
     if status is not None:
         query = query.filter(SolarUnit.shs_status == status)
 
     if search:
         sf = f"%{search}%"
-        # 扩展搜索范围到 5 个硬件 ID
         query = query.filter(or_(
             SolarUnit.shs_machine_id.ilike(sf),
             SolarUnit.solar_equipment_id.ilike(sf),
             SolarUnit.radio_id.ilike(sf),
             SolarUnit.flashlight_id.ilike(sf),
             SolarUnit.led_light_id.ilike(sf),
-            SolarUnit.customer_name.ilike(sf) # 支持搜索已录入的客户名
+            SolarUnit.customer_name.ilike(sf)
         ))
 
     total = query.count()
@@ -66,7 +73,23 @@ def get_solar_units(
 
     items = []
     for u in units:
-        # 直接从 SolarUnit 自身的字段读取数据，不再通过 u.customer 链接
+        # 动态解析地区名称：优先从绑定的 Customer 实时档案中获取
+        city_name, town_name = "-", "-"
+        cust_id = None
+        
+        if u.customer:
+            cust_id = u.customer.id
+            if u.customer.region:
+                reg = u.customer.region
+                if reg.level == 2: # Purok
+                    town_name = reg.name
+                    city_name = reg.parent.name if reg.parent else "-"
+                else:
+                    city_name = reg.name
+        elif u.city or u.town:
+            city_name = u.city or "-"
+            town_name = u.town or "-"
+
         items.append({
             "id": u.id, 
             "shs_machine_id": u.shs_machine_id,
@@ -75,10 +98,11 @@ def get_solar_units(
             "flashlight_id": u.flashlight_id, 
             "led_light_id": u.led_light_id,
             "status": u.shs_status, 
+            "customer_id": cust_id,
             "customer_uuid": str(u.customer_uuid) if u.customer_uuid else "-",
             "customer_name": u.customer_name or "-", 
-            "city_name": u.city or "-", 
-            "town_name": u.town or "-",
+            "city_name": city_name, 
+            "town_name": town_name,
             "production_date": u.production_date, 
             "created_at": u.created_at, 
             "bound_at": u.bound_at
@@ -104,6 +128,27 @@ def create_solar_unit(
     db.add(new_unit)
     db.commit()
     return {"status": "success", "id": new_unit.id}
+
+@router.get("/import-template")
+def get_solar_import_template(current_user: Any = Depends(get_finance_or_admin)):
+    """获取设备导入 Excel 模板"""
+    df = pd.DataFrame(columns=[
+        "shs_machine_id", "solar_equipment_id", "radio_id", 
+        "flashlight_id", "led_light_id", "production_date"
+    ])
+    # 示例数据
+    df.loc[0] = ["M1001", "S1001", "R1001", "F1001", "L1001", "2024-01-01"]
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=solar_unit_import_template.xlsx"}
+    )
 
 @router.post("/import")
 async def import_solar_units(
@@ -188,6 +233,78 @@ def reset_unit(
     
     db.commit()
     return {"status": "success"}
+
+@router.get("/export")
+def export_solar_units(
+    db: Session = Depends(get_db),
+    region_id: Optional[int] = Query(None),
+    status: Optional[int] = Query(None),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """导出设备全维度报表"""
+    query = db.query(SolarUnit).outerjoin(
+        Customer, SolarUnit.customer_uuid == Customer.uuid
+    ).options(
+        joinedload(SolarUnit.customer).joinedload(Customer.region).joinedload(Region.parent)
+    )
+
+    if status is not None:
+        query = query.filter(SolarUnit.shs_status == status)
+
+    if region_id:
+        allowed_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            c_ids = [c[0] for c in children]
+            allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+        query = query.filter(Customer.region_id.in_(allowed_ids))
+
+    units = query.all()
+    export_data = []
+    
+    status_map = {0: "In Stock", 1: "Active", 2: "Damaged"}
+
+    for u in units:
+        city_name, town_name = "-", "-"
+        if u.customer:
+            if u.customer.region:
+                reg = u.customer.region
+                if reg.level == 2:
+                    town_name = reg.name
+                    city_name = reg.parent.name if reg.parent else "-"
+                else:
+                    city_name = reg.name
+        elif u.city or u.town:
+            city_name = u.city or "-"
+            town_name = u.town or "-"
+
+        export_data.append({
+            "Machine ID": u.shs_machine_id,
+            "Solar Panel ID": u.solar_equipment_id,
+            "Radio ID": u.radio_id,
+            "Flashlight ID": u.flashlight_id,
+            "LED ID": u.led_light_id,
+            "Status": status_map.get(u.shs_status, "Unknown"),
+            "Owner": u.customer_name or "-",
+            "Municipality": city_name,
+            "Barangay": town_name,
+            "Production Date": u.production_date.strftime("%Y-%m-%d") if u.production_date else "-",
+            "Bound Date": u.bound_at.strftime("%Y-%m-%d") if u.bound_at else "-"
+        })
+
+    df = pd.DataFrame(export_data)
+    output = io.StringIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig')
+    csv_bytes = output.getvalue().encode('utf-8-sig')
+    
+    filename = f"SHS_Inventory_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        io.BytesIO(csv_bytes), 
+        media_type="text/csv", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @router.delete("/{unit_id}")
 def delete_unit(

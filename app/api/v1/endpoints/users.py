@@ -79,6 +79,16 @@ def create_user(
         region = db.query(Region).filter(Region.id == region_id).first()
         if not region:
             raise HTTPException(status_code=404, detail="Assigned region not found")
+        
+        # 核心逻辑：强制分配到最细粒度（叶子节点）
+        # 如果该区域拥有子区域，则不允许直接分配到该层级，必须深入到下一级
+        if user_in.role == 2: # 仅针对业务员强制校验
+            has_children = db.query(Region.id).filter(Region.parent_id == region_id).first()
+            if has_children:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid Assignment: Region '{region.name}' has sub-regions. Please assign the operator to a specific leaf level (Barangay or Purok)."
+                )
     
     db.add(db_obj)
     db.commit()
@@ -131,6 +141,16 @@ def update_user(
             region = db.query(Region).filter(Region.id == rid).first()
             if not region:
                 raise HTTPException(status_code=404, detail="Assigned region not found")
+            
+            # 核心逻辑：强制分配到最细粒度（叶子节点）
+            target_role = update_data.get("role", db_user.role)
+            if target_role == 2:
+                has_children = db.query(Region.id).filter(Region.parent_id == rid).first()
+                if has_children:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Invalid Assignment: Region '{region.name}' has sub-regions. Please assign the operator to a specific leaf level (Barangay or Purok)."
+                    )
 
     if "password" in update_data:
         pw = update_data.pop("password")

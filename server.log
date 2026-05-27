@@ -1,8 +1,8 @@
 INFO:     Will watch for changes in these directories: ['/Users/michael/dev/shs/shs-back']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [4512] using StatReload
+INFO:     Started reloader process [15760] using StatReload
 /Users/michael/dev/shs/shs-back/app/models/pos_staging.py:5: SAWarning: Can't validate argument 'check_constraint'; can't locate any SQLAlchemy dialect named 'check'
   class POSStagingTransaction(Base):
-INFO:     Started server process [4515]
+INFO:     Started server process [15765]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.

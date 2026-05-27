@@ -70,20 +70,34 @@ def login_access_token(
         if not provider_config_exists or not provider_config_exists.is_initialized:
             setup_status["provider_config_set"] = False
 
-    # --- [获取当前用户的费率和地区名称 (支持递归继承)] ---
+    # --- [获取当前用户的费率和详细层级信息 (支持递归继承)] ---
     daily_rate = 0.0
     region_name = ""
+    hierarchy = {"municipality": "", "barangay": "", "purok": ""}
+
     if user.region_id:
         region = db.query(Region).filter(Region.id == user.region_id).first()
         if region:
             region_name = region.full_name
-            # 递归向上寻找费率
+            # 解析层级名称
             curr = region
             while curr:
-                if curr.daily_rate is not None:
+                if curr.level == 0: hierarchy["municipality"] = curr.name
+                elif curr.level == 1: hierarchy["barangay"] = curr.name
+                elif curr.level == 2: hierarchy["purok"] = curr.name
+                
+                # 寻找费率
+                if daily_rate == 0.0 and curr.daily_rate is not None:
                     daily_rate = float(curr.daily_rate)
-                    break
                 curr = curr.parent
+
+    # 获取总公司信息
+    provider = db.query(ProviderConfig).first()
+    provider_info = {
+        "company_name": provider.name if provider else "SHS Provider",
+        "tin": provider.tin if provider else "",
+        "logo_url": provider.logo_url if provider else None
+    }
 
     # --- [第四步：生成 Token] ---
     token_data = {"sub": str(user.id)}
@@ -93,12 +107,15 @@ def login_access_token(
     return {
         "access_token": token,
         "token_type": "bearer",
-        "setup_status": setup_status,  # 所有的初始化状态标志
-        "user_role": user.role,        # ✅ 新增：方便前端做权限分流
+        "setup_status": setup_status,
+        "user_role": user.role,
         "username": user.username,
-        "user_id": user.id,            # ✅ 新增：将用户的 ID 下发给 POS 机本地缓存
-        "daily_rate": daily_rate,      # ✅ 新增：操作员当前所在地区的费率
-        "region_name": region_name     # ✅ 新增：操作员当前所在地区名称
+        "user_id": user.id,
+        "region_id": user.region_id,
+        "daily_rate": daily_rate,
+        "region_name": region_name,
+        "hierarchy": hierarchy,
+        "provider": provider_info
     }
 
 
@@ -146,20 +163,30 @@ def login_access_token_json(
         if not provider_config_exists or not provider_config_exists.is_initialized:
             setup_status["provider_config_set"] = False
 
-    # --- [获取当前用户的费率和地区名称 (支持递归继承)] ---
+    # --- [获取当前用户的费率和详细层级信息 (支持递归继承)] ---
     daily_rate = 0.0
     region_name = ""
+    hierarchy = {"municipality": "", "barangay": "", "purok": ""}
+
     if user.region_id:
         region = db.query(Region).filter(Region.id == user.region_id).first()
         if region:
             region_name = region.full_name
-            # 递归向上寻找费率
             curr = region
             while curr:
-                if curr.daily_rate is not None:
+                if curr.level == 0: hierarchy["municipality"] = curr.name
+                elif curr.level == 1: hierarchy["barangay"] = curr.name
+                elif curr.level == 2: hierarchy["purok"] = curr.name
+                if daily_rate == 0.0 and curr.daily_rate is not None:
                     daily_rate = float(curr.daily_rate)
-                    break
                 curr = curr.parent
+
+    provider = db.query(ProviderConfig).first()
+    provider_info = {
+        "company_name": provider.name if provider else "SHS Provider",
+        "tin": provider.tin if provider else "",
+        "logo_url": provider.logo_url if provider else None
+    }
 
     # --- [第四步：生成 Token] ---
     token_data = {"sub": str(user.id)}
@@ -172,8 +199,11 @@ def login_access_token_json(
         "user_role": user.role,
         "username": user.username,
         "user_id": user.id,
+        "region_id": user.region_id,
         "daily_rate": daily_rate,
-        "region_name": region_name
+        "region_name": region_name,
+        "hierarchy": hierarchy,
+        "provider": provider_info
     }
 
 @router.post("/emergency-reset-admin")

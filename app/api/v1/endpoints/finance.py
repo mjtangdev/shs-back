@@ -1,11 +1,11 @@
 import io
 import pandas as pd
 from typing import Any, Optional
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.api.deps import get_db, get_current_user
 from app.models.transaction import TransactionLog
@@ -18,7 +18,8 @@ router = APIRouter()
 
 def _build_finance_query(db: Session, start_date: date = None, end_date: date = None, 
                          pos_sn: str = None, operator: str = None, region_id: int = None,
-                         exact_operator: bool = False):
+                         exact_operator: bool = False, customer_uuid: str = None,
+                         search: str = None):
     """内部辅助函数：构建通用的过滤查询"""
     # 联表查询，关联客户表以获取客户姓名和所属区域
     query = db.query(TransactionLog, Customer, Region).outerjoin(
@@ -27,18 +28,36 @@ def _build_finance_query(db: Session, start_date: date = None, end_date: date = 
         Region, Customer.region_id == Region.id
     )
 
+    if customer_uuid:
+        query = query.filter(TransactionLog.customer_uuid == customer_uuid)
     if start_date:
-        query = query.filter(TransactionLog.transaction_time >= start_date)
+        query = query.filter(TransactionLog.transaction_time >= datetime.combine(start_date, datetime.min.time()))
     if end_date:
         # 包含结束日期当天
-        query = query.filter(TransactionLog.transaction_time < end_date + timedelta(days=1))
+        query = query.filter(TransactionLog.transaction_time < datetime.combine(end_date + timedelta(days=1), datetime.min.time()))
+    
     if pos_sn:
         query = query.filter(TransactionLog.pos_sn.ilike(f"%{pos_sn}%"))
+        
     if operator:
         if exact_operator:
             query = query.filter(TransactionLog.operator_username == operator)
         else:
             query = query.filter(TransactionLog.operator_username.ilike(f"%{operator}%"))
+
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            or_(
+                TransactionLog.transaction_id.ilike(search_filter),
+                TransactionLog.operator_username.ilike(search_filter),
+                TransactionLog.customer_uuid.ilike(search_filter),
+                TransactionLog.pos_sn.ilike(search_filter),
+                Customer.first_name.ilike(search_filter),
+                Customer.last_name.ilike(search_filter)
+            )
+        )
+
     if region_id:
         # 仅匹配该地区及子地区
         allowed_ids = [region_id]
@@ -63,7 +82,9 @@ def get_transactions(
     end_date: Optional[date] = Query(None),
     pos_sn: Optional[str] = Query(None),
     operator: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     region_id: Optional[int] = Query(None),
+    customer_uuid: Optional[str] = Query(None),
     current_user: User = Depends(get_current_user)
 ):
     exact_operator = False
@@ -74,7 +95,7 @@ def get_transactions(
     elif current_user.role not in [0, 1, 3]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    query = _build_finance_query(db, start_date, end_date, pos_sn, operator, region_id, exact_operator)
+    query = _build_finance_query(db, start_date, end_date, pos_sn, operator, region_id, exact_operator, customer_uuid, search)
     total = query.count()
     results = query.order_by(TransactionLog.transaction_time.desc()).offset(skip).limit(limit).all()
 
@@ -105,6 +126,7 @@ def get_finance_summary(
     end_date: Optional[date] = Query(None),
     pos_sn: Optional[str] = Query(None),
     operator: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     region_id: Optional[int] = Query(None),
     current_user: User = Depends(get_current_user)
 ):
@@ -117,7 +139,7 @@ def get_finance_summary(
         raise HTTPException(status_code=403, detail="Permission denied")
 
     # 复用过滤逻辑，但是我们只需要查询聚合数据
-    base_query = _build_finance_query(db, start_date, end_date, pos_sn, operator, region_id, exact_operator)
+    base_query = _build_finance_query(db, start_date, end_date, pos_sn, operator, region_id, exact_operator, search=search)
     
     # 提取聚合列：总金额、总天数、记录条数
     summary = base_query.with_entities(
@@ -140,6 +162,7 @@ def export_finance_records(
     end_date: Optional[date] = Query(None),
     pos_sn: Optional[str] = Query(None),
     operator: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
     region_id: Optional[int] = Query(None),
     current_user: User = Depends(get_current_user)
 ):
@@ -151,5 +174,33 @@ def export_finance_records(
     elif current_user.role not in [0, 1, 3]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # 导出逻辑与上文各模块的导出相似，可以使用 Pandas 处理并生成 Excel 流，这部分可以后续填充详细代码。
-    pass
+    query = _build_finance_query(db, start_date, end_date, pos_sn, operator, region_id, exact_operator, search=search)
+    results = query.order_by(TransactionLog.transaction_time.desc()).all()
+
+    data = []
+    for tx, customer, region in results:
+        data.append({
+            "Transaction ID": tx.transaction_id,
+            "Time": tx.transaction_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "Customer": f"{customer.first_name} {customer.last_name}" if customer else "-",
+            "Customer UUID": tx.customer_uuid,
+            "Region": region.name if region else "-",
+            "Action": tx.action_type,
+            "Amount (PHP)": float(tx.amount),
+            "Days": float(tx.days),
+            "POS SN": tx.pos_sn,
+            "Operator": tx.operator_username,
+            "Customer Current Expiry": customer.expiry_time.strftime("%Y-%m-%d %H:%M:%S") if customer and customer.expiry_time else "Never/Expired"
+        })
+
+    df = pd.DataFrame(data)
+    output = io.StringIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig') # 使用 utf-8-sig 解决 Excel 乱码
+    csv_bytes = output.getvalue().encode('utf-8-sig')
+    
+    filename = f"shs-transactions_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        io.BytesIO(csv_bytes), 
+        media_type="text/csv", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )

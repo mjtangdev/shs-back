@@ -6,8 +6,8 @@ class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50, pattern="^[a-zA-Z0-9_-]+$")
     first_name: str = Field(..., min_length=1, max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
-    mobile: str # 移除了手机号的正则限制，现在可以输入任意字符
-    email: Optional[EmailStr] = None
+    mobile: str = Field(..., min_length=5, max_length=20) # 强制手机号必填且限制长度
+    email: Optional[EmailStr] = None # 改为可选
     
     # --- 核心业务字段 ---
     role: int = 2  # 0:SuperAdmin, 1:Admin, 2:Operator, 3:Finance, 4:Management

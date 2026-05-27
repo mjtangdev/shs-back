@@ -3,14 +3,19 @@ from typing import Optional, List
 from datetime import date, datetime
 
 class CustomerBase(BaseModel):
-    first_name: str
-    last_name: str
-    # 修改点：改为小写匹配，以兼容后端自动转换逻辑
-    gender: str = Field(..., pattern="^(male|female)$") 
-    mobile: str
-    email: Optional[EmailStr] = None
-    birthday: Optional[date] = None
-    address: Optional[str] = None # 详细地址字段
+    first_name: str = Field(..., max_length=50)
+    last_name: str = Field(..., max_length=50)
+    # 改为不区分大小写的匹配
+    gender: str = Field(..., pattern="^(?i)(male|female)$")
+    mobile: str = Field(..., max_length=20)
+    email: Optional[EmailStr] = Field(None, max_length=100)
+    birthday: date # 强制生日必填
+    address: Optional[str] = Field(None, max_length=255) # 详细地址现在是选填的
+    
+    # 新增字段
+    beneficiary_count: Optional[int] = 0
+    representative_name: Optional[str] = Field(None, max_length=100)
+    rep_relationship: Optional[str] = Field("-", max_length=50)
 
 class CustomerCreate(CustomerBase):
     """手动创建客户时使用的模型"""
@@ -18,13 +23,13 @@ class CustomerCreate(CustomerBase):
 
 class CustomerUpdate(BaseModel):
     """用于 PUT 编辑的校验模型，所有字段均为可选"""
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    gender: Optional[str] = Field(None, pattern="^(male|female)$")
-    mobile: Optional[str] = None
-    email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(None, max_length=50)
+    last_name: Optional[str] = Field(None, max_length=50)
+    gender: Optional[str] = Field(None, pattern="^(?i)(male|female)$")
+    mobile: Optional[str] = Field(None, max_length=20)
+    email: Optional[EmailStr] = Field(None, max_length=100)
     birthday: Optional[date] = None
-    address: Optional[str] = None
+    address: Optional[str] = Field(None, max_length=255)
     region_id: Optional[int] = None
 
 class CustomerExcelImport(CustomerBase):
@@ -44,6 +49,14 @@ class CustomerOut(BaseModel):
     address: Optional[str] = None
     region_id: int
     status: int
+    
+    # 新增字段
+    electric_company: Optional[str] = None
+    beneficiary_count: Optional[int] = 0
+    representative_name: Optional[str] = None
+    rep_relationship: Optional[str] = "-"
+    expiry_time: Optional[datetime] = None
+
     created_at: datetime
 
     class Config:

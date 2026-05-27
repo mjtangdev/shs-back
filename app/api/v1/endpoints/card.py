@@ -21,6 +21,7 @@ def get_cards(
     db: Session = Depends(get_db),
     skip: int = 0,
     limit: int = 50,
+    region_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
     status: Optional[int] = Query(None), # 0: Stock, 1: Active, 2: Blocked, 3: Damaged
     current_user: Any = Depends(get_current_user)
@@ -31,21 +32,26 @@ def get_cards(
         joinedload(Card.customer).joinedload(Customer.region).joinedload(Region.parent)
     )
     
-    # 业务员(Role 2) 隔离：只能看自己区域及下属区域的卡片(通过客户关联)
+    # 确定过滤的基础 region_id
+    filter_region_id = region_id
     if current_user.role == 2:
-        if current_user.region_id is None:
-            return {"total": 0, "items": []} # 未分配区域的业务员无数据
-        
-        allowed_ids = [current_user.region_id]
-        children = db.query(Region.id).filter(Region.parent_id == current_user.region_id).all()
+        filter_region_id = current_user.region_id
+
+    if filter_region_id is not None:
+        # 递归获取子区域 ID
+        allowed_ids = [filter_region_id]
+        children = db.query(Region.id).filter(Region.parent_id == filter_region_id).all()
         if children:
-            child_ids = [c[0] for c in children]
-            allowed_ids.extend(child_ids)
-            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            c_ids = [c[0] for c in children]
+            allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
             allowed_ids.extend([sc[0] for sc in sub_children])
-            
-        # 业务员可以看：1. 在库未绑定的空白卡(status=0)  2. 属于自己辖区客户的卡
-        query = query.filter(or_(Card.status == 0, Customer.region_id.in_(allowed_ids)))
+        
+        # 业务员隔离逻辑：可以看在库(0)或自己区域的
+        if current_user.role == 2:
+            query = query.filter(or_(Card.status == 0, Customer.region_id.in_(allowed_ids)))
+        else:
+            query = query.filter(Customer.region_id.in_(allowed_ids))
 
     if status is not None:
         query = query.filter(Card.status == status)
@@ -60,17 +66,21 @@ def get_cards(
     items = []
     for c in cards:
         city, town, cust_name = "-", "-", "-"
+        cust_id = None
         if c.customer:
+            cust_id = c.customer.id
             cust_name = f"{c.customer.first_name} {c.customer.last_name}"
             if c.customer.region:
-                if c.customer.region.level == 2 and c.customer.region.parent:
-                    city, town = c.customer.region.parent.name, c.customer.region.name
+                reg = c.customer.region
+                if reg.level == 2:
+                    town = reg.name
+                    city = reg.parent.name if reg.parent else "-"
                 else:
-                    city = c.customer.region.name
+                    city = reg.name
 
         items.append({
             "id": c.id, "card_number": c.card_number, "card_uuid": c.card_uuid,
-            "status": c.status, "customer_uuid": c.customer_uuid or "-",
+            "status": c.status, "customer_id": cust_id, "customer_uuid": c.customer_uuid or "-",
             "customer_name": cust_name, "city_name": city, "town_name": town,
             "created_at": c.created_at, "bound_at": c.bound_at
         })
@@ -79,6 +89,8 @@ def get_cards(
 # --- 2. 手动创建/入库 ---
 @router.post("/create")
 def create_card(db: Session = Depends(get_db), card_in: CardCreate = None, current_user: Any = Depends(get_finance_or_admin)):
+    # Enforce uppercase for UUID
+    card_in.card_uuid = card_in.card_uuid.strip().upper()
     existing = db.query(Card).filter(or_(Card.card_number == card_in.card_number, Card.card_uuid == card_in.card_uuid)).first()
     if existing:
         raise HTTPException(status_code=400, detail="Physical Card Number or UUID already exists")
@@ -89,6 +101,24 @@ def create_card(db: Session = Depends(get_db), card_in: CardCreate = None, curre
     return {"status": "success", "id": new_card.id}
 
 # --- 3. Excel 批量导入 (Import) ---
+@router.get("/import-template")
+def get_card_import_template(current_user: Any = Depends(get_finance_or_admin)):
+    """获取 IC 卡导入 Excel 模板"""
+    df = pd.DataFrame(columns=["card_number", "card_uuid"])
+    # 示例数据
+    df.loc[0] = ["00880001", "A1B2C3D4"]
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=iccard_import_template.xlsx"}
+    )
+
 @router.post("/import")
 async def import_cards(
     file: UploadFile = File(...),
@@ -109,7 +139,7 @@ async def import_cards(
     batch, skipped = [], []
     for idx, row in df.iterrows():
         n = str(row.get('card_number', '')).strip()
-        u = str(row.get('card_uuid', '')).strip()
+        u = str(row.get('card_uuid', '')).strip().upper() # Enforce Uppercase
         
         if not n or not u or n in exist_nums or u in exist_uuids:
             skipped.append(f"Row {idx+2}: Duplicate or Empty ID")
@@ -129,46 +159,77 @@ async def import_cards(
 def export_cards(
     db: Session = Depends(get_db), 
     status: Optional[int] = None,
+    region_id: Optional[int] = Query(None),
     current_user: Any = Depends(get_finance_or_admin)
 ):
-    query = db.query(Card).outerjoin(Customer, Card.customer_uuid == Customer.uuid)
+    query = db.query(Card).outerjoin(Customer, Card.customer_uuid == Customer.uuid).options(
+        joinedload(Card.customer).joinedload(Customer.region).joinedload(Region.parent).joinedload(Region.parent)
+    )
     if status is not None:
         query = query.filter(Card.status == status)
+
+    if region_id:
+        allowed_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            c_ids = [c[0] for c in children]
+            allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+        
+        # Filter cards bound to customers in these regions
+        query = query.filter(Customer.region_id.in_(allowed_ids))
         
     cards = query.all()
     status_map = {0: "In Stock", 1: "Activated", 2: "Blocked", 3: "Damaged"}
     
     rows = []
     for c in cards:
-        barangay, purok, name = "-", "-", "-"
+        municipality, barangay, purok, name = "-", "-", "-", "-"
         if c.customer:
             name = f"{c.customer.first_name} {c.customer.last_name}"
             if c.customer.region:
-                if c.customer.region.level == 2 and c.customer.region.parent:
-                    barangay, purok = c.customer.region.parent.name, c.customer.region.name
-                else:
-                    barangay = c.customer.region.name
+                reg = c.customer.region
+                if reg.level == 2:
+                    purok = reg.name
+                    if reg.parent:
+                        barangay = reg.parent.name
+                        if reg.parent.parent:
+                            municipality = reg.parent.parent.name
+                elif reg.level == 1:
+                    barangay = reg.name
+                    if reg.parent:
+                        municipality = reg.parent.name
+                elif reg.level == 0:
+                    municipality = reg.name
         
         rows.append({
             "Card Number": c.card_number, "Card UUID": c.card_uuid,
             "Status": status_map.get(c.status, "Unknown"),
-            "Customer": name, 
+            "Full Name": name, 
+            "Municipality": municipality,
             "Barangay": barangay, 
             "Purok": purok,
-            "Created Date": c.created_at.strftime("%Y-%m-%d") if c.created_at else "-",
-            "Bound Date": c.bound_at.strftime("%Y-%m-%d") if c.bound_at else "-"
+            "LATITUDE": "-", 
+            "LONGITUDE": "-",
+            "IAS": "-",
+            "DATE INSTALLED": c.bound_at.strftime("%Y-%m-%d") if c.bound_at else "-",
+            "IR REPORT NO.": "-",
+            "REMARKS": "-",
+            "CREATED DATE": c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "-",
+            "LAST UPDATED": c.updated_at.strftime("%Y-%m-%d %H:%M") if c.updated_at else "-"
         })
 
     df = pd.DataFrame(rows)
-    out = io.BytesIO()
-    with pd.ExcelWriter(out, engine='openpyxl') as w:
-        df.to_excel(w, index=False)
-    out.seek(0)
+    output = io.StringIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig')
+    csv_bytes = output.getvalue().encode('utf-8-sig')
     
+    filename = f"shs-iccard_{datetime.now().strftime('%Y%m%d')}.csv"
     return StreamingResponse(
-        out, 
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=Cards_Report_{datetime.now().strftime('%Y%m%d')}.xlsx"}
+        io.BytesIO(csv_bytes), 
+        media_type="text/csv", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 # --- 5. 删除卡片 (Delete) ---

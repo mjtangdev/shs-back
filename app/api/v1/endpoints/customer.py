@@ -1,7 +1,7 @@
 from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 import pandas as pd
@@ -20,6 +20,10 @@ from app.api.deps import get_db, get_current_user, get_finance_or_admin, get_cur
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerExcelImport, CustomerUpdate
 from app.models.org import Region
+from app.models.config import ProviderConfig
+from app.models.card import Card
+from app.models.solar_device import SolarUnit
+from app.models.transaction import TransactionLog
 
 router = APIRouter()
 
@@ -31,12 +35,18 @@ def get_customers(
     limit: int = 50,
     region_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
+    expired_only: bool = Query(False, description="Filter only expired customers"),
     current_user: Any = Depends(get_current_user)
 ) -> Any:
     """获取客户列表，自动拼接地区层级名字"""
     query = db.query(Customer).options(
         joinedload(Customer.region).joinedload(Region.parent)
     )
+
+    if expired_only:
+        # 只展示“已经充值过但已过期”的客户 (即 expiry_time 不为空且早于当前时间)
+        now = datetime.now()
+        query = query.filter(Customer.expiry_time != None, Customer.expiry_time < now)
 
     # 确定过滤的基础 region_id (业务员强制使用自身地区，管理员/财务使用参数)
     filter_region_id = current_user.region_id if current_user.role == 2 else region_id
@@ -89,13 +99,130 @@ def get_customers(
             "address": c.address,
             "region_id": c.region_id,
             "region_name": display_region_name,
+            "electric_company": c.electric_company,
+            "beneficiary_count": c.beneficiary_count,
+            "representative_name": c.representative_name,
+            "rep_relationship": c.rep_relationship,
+            "expiry_time": c.expiry_time.strftime("%Y-%m-%d %H:%M:%S") if c.expiry_time else None,
+            "total_recharged_days": float(c.total_recharged_days or 0),
+            "total_recharged_amount": float(c.total_recharged_amount or 0),
             "created_at": c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else None
         })
 
     return {"total": total, "items": result}
 
 
-# --- 2. 手动创建 (应用 Snowflake & 强制小写转换) ---
+# --- 2. 导出 Excel ---
+@router.get("/export")
+def export_customers(
+    db: Session = Depends(get_db),
+    region_id: Optional[int] = Query(None),
+    expired_only: bool = Query(False, description="Export only expired customers"),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """优化后的导出接口：批量预加载 + 减少数据库往返"""
+    # 核心优化：使用 selectinload 批量获取一对多关系，使用 joinedload 获取多对一关系
+    query = db.query(Customer).options(
+        joinedload(Customer.region).joinedload(Region.parent).joinedload(Region.parent),
+        selectinload(Customer.solar_units),
+        selectinload(Customer.cards)
+    )
+
+    if expired_only:
+        now = datetime.now()
+        query = query.filter(Customer.expiry_time != None, Customer.expiry_time < now)
+
+    if region_id:
+        # 向下递归：包含本级及所有子级的 ID
+        allowed_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            child_ids = [c[0] for c in children]
+            allowed_ids.extend(child_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+        query = query.filter(Customer.region_id.in_(allowed_ids))
+    
+    customers = query.all()
+    export_data = []
+
+    for c in customers:
+        municipality, barangay, purok = "-", "-", "-"
+        # 快速解析层级 (无需再次查询)
+        reg = c.region
+        if reg:
+            if reg.level == 2:
+                purok = reg.name
+                if reg.parent:
+                    barangay = reg.parent.name
+                    if reg.parent.parent: municipality = reg.parent.parent.name
+            elif reg.level == 1:
+                barangay = reg.name
+                if reg.parent: municipality = reg.parent.name
+            else:
+                municipality = reg.name
+
+        # 获取预加载的资产信息
+        shs_id, solar_id, radio_id, flash_id, led_id, card_uuid = "-", "-", "-", "-", "-", "-"
+        date_installed = "-"
+        
+        # 提取第一个绑定的卡片
+        if c.cards:
+            card_uuid = c.cards[0].card_uuid
+
+        # 提取第一个绑定的设备
+        if c.solar_units:
+            u = c.solar_units[0]
+            shs_id, solar_id, radio_id, flash_id, led_id = u.shs_machine_id, u.solar_equipment_id, u.radio_id, u.flashlight_id, u.led_light_id
+            if u.bound_at:
+                date_installed = u.bound_at.strftime("%Y-%m-%d")
+
+        export_data.append({
+            "Customer ID": c.uuid,
+            "Full Name": f"{c.first_name} {c.last_name}",
+            "Gender": c.gender,
+            "Mobile": c.mobile,
+            "Municipality": municipality,
+            "Barangay": barangay,
+            "Purok": purok,
+            "Card UUID": card_uuid,
+            "SHS Machine": shs_id,
+            "Solar Equipment": solar_id,
+            "Radio": radio_id,
+            "Flashlight": flash_id,
+            "LED Light": led_id,
+            "Total Recharge": float(c.total_recharged_amount or 0),
+            "LATITUDE": "-",
+            "LONGITUDE": "-",
+            "IAS": "-",
+            "DATE INSTALLED": date_installed,
+            "IR REPORT NO.": "-",
+            "REMARKS": "-",
+            "Electric Company": c.electric_company or "-",
+            "Beneficiary Count": c.beneficiary_count or 0,
+            "Representative Name": c.representative_name or "-",
+            "Relationship": c.rep_relationship or "-",
+            "CREATED DATE": c.created_at.strftime("%Y-%m-%d %H:%M") if c.created_at else "-",
+            "LAST UPDATED": c.updated_at.strftime("%Y-%m-%d %H:%M") if c.updated_at else "-"
+        })
+
+    df = pd.DataFrame(export_data)
+    
+    # 将 DataFrame 转换为 CSV 字节流，并添加 UTF-8 BOM 以防 Excel 乱码
+    output = io.StringIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig') # 'utf-8-sig' 会自动添加 BOM
+    
+    csv_bytes = output.getvalue().encode('utf-8-sig')
+    
+    filename = f"SHS_Export_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        io.BytesIO(csv_bytes), 
+        media_type="text/csv", 
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+# --- 3. 手动创建 ---
 @router.post("/create")
 def create_customer(
     *,
@@ -112,10 +239,20 @@ def create_customer(
     if "gender" in update_data and isinstance(update_data["gender"], str):
         update_data["gender"] = update_data["gender"].strip().lower()
 
+    # 获取总公司名称作为 Electric Company
+    provider = db.query(ProviderConfig).first()
+    electric_company_name = provider.name if provider else "-"
+
     try:
+        # 处理代表姓名逻辑
+        full_name = f"{customer_in.first_name} {customer_in.last_name}"
+        update_data["representative_name"] = customer_in.representative_name if customer_in.representative_name and customer_in.representative_name.strip() else full_name
+        update_data["rep_relationship"] = customer_in.rep_relationship or "-"
+        
         new_obj = Customer(
             **update_data,
             uuid=get_snowflake_id(), 
+            electric_company=electric_company_name,
             created_at=datetime.now()
         )
         db.add(new_obj)
@@ -127,7 +264,186 @@ def create_customer(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- 3. 编辑客户 (使用 PUT) ---
+# --- 4. 批量导入 ---
+@router.get("/import-template")
+def get_customer_import_template(current_user: Any = Depends(get_finance_or_admin)):
+    """获取客户导入 Excel 模板"""
+    df = pd.DataFrame(columns=[
+        "first_name", "last_name", "gender", "mobile", "birthday", 
+        "address", "email", "beneficiary_count", "representative_name", "rep_relationship"
+    ])
+    # 添加一行示例
+    df.loc[0] = ["James", "Smith", "male", "09123456789", "1990-01-01", "Pangasinan", "james@example.com", 3, "James Smith", "-"]
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+    
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=customer_import_template.xlsx"}
+    )
+
+@router.post("/import")
+async def import_customers(
+    region_id: int = Query(..., description="Target Region ID"),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Please upload a valid Excel file.")
+
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents), dtype=str)
+        df = df.where(pd.notnull(df), None)
+        df.columns = [str(c).strip().lower() for c in df.columns]
+
+        existing_mobiles = {m[0] for m in db.query(Customer.mobile).all()}
+        provider = db.query(ProviderConfig).first()
+        electric_company_name = provider.name if provider else "-"
+        
+        batch_customers = []
+        skip_details = []
+        
+        for index, row in df.iterrows():
+            row_dict = row.to_dict()
+            row_dict = {k: (v.strip() if isinstance(v, str) else v) for k, v in row_dict.items() if v is not None}
+            
+            if 'gender' in row_dict and isinstance(row_dict['gender'], str):
+                row_dict['gender'] = row_dict['gender'].strip().lower()
+            
+            mobile = row_dict.get('mobile')
+            if not mobile or mobile in existing_mobiles:
+                reason = "重复/缺失手机号"
+                skip_details.append(f"行 {index + 2}: {reason}")
+                continue
+
+            try:
+                valid_data = CustomerExcelImport(**row_dict)
+                # 处理代表姓名默认逻辑
+                fname = valid_data.first_name
+                lname = valid_data.last_name
+                input_rep = valid_data.representative_name
+                
+                cust_dict = valid_data.dict()
+                cust_dict["representative_name"] = input_rep if input_rep and input_rep.strip() else f"{fname} {lname}"
+                cust_dict["rep_relationship"] = valid_data.rep_relationship or "-"
+                
+                new_cust = Customer(
+                    **cust_dict,
+                    region_id=region_id,
+                    uuid=get_snowflake_id(),
+                    electric_company=electric_company_name,
+                    created_at=datetime.now()
+                )
+                batch_customers.append(new_cust)
+                existing_mobiles.add(mobile) 
+            except Exception as row_err:
+                skip_details.append(f"行 {index + 2} 校验失败: {str(row_err)}")
+
+        if batch_customers:
+            db.add_all(batch_customers)
+            db.commit()
+            return {"status": "SUCCESS", "imported": len(batch_customers), "skipped": skip_details}
+        
+        return {"status": "EMPTY", "message": "无有效数据"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        await file.close()
+
+
+# --- 5. 获取单个客户详情 ---
+@router.get("/{customer_id}")
+def get_customer_detail(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_current_user)
+) -> Any:
+    """获取单个客户的详细信息（含资产与近期流水）"""
+    customer = db.query(Customer).options(
+        joinedload(Customer.region).joinedload(Region.parent)
+    ).filter(Customer.id == customer_id).first()
+
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # 获取关联资产
+    cards = db.query(Card).filter(Card.customer_uuid == customer.uuid).all()
+    solar_units = db.query(SolarUnit).filter(SolarUnit.customer_uuid == customer.uuid).all()
+    
+    # 获取最近10条流水
+    recent_transactions = db.query(TransactionLog).filter(
+        TransactionLog.customer_uuid == customer.uuid
+    ).order_by(TransactionLog.transaction_time.desc()).limit(10).all()
+
+    display_region_name = "Unknown"
+    if customer.region:
+        if customer.region.level == 2 and customer.region.parent:
+            display_region_name = f"{customer.region.parent.name} - {customer.region.name}"
+        else:
+            display_region_name = customer.region.name
+
+    return {
+        "id": customer.id,
+        "uuid": customer.uuid, 
+        "first_name": customer.first_name,
+        "last_name": customer.last_name,
+        "gender": customer.gender,
+        "mobile": customer.mobile,
+        "email": customer.email,
+        "birthday": customer.birthday.strftime("%Y-%m-%d") if customer.birthday else None,
+        "address": customer.address,
+        "region_id": customer.region_id,
+        "region_name": display_region_name,
+        "electric_company": customer.electric_company,
+        "beneficiary_count": customer.beneficiary_count,
+        "representative_name": customer.representative_name,
+        "rep_relationship": customer.rep_relationship,
+        "expiry_time": customer.expiry_time.strftime("%Y-%m-%d %H:%M:%S") if customer.expiry_time else None,
+        "total_recharged_days": float(customer.total_recharged_days or 0),
+        "total_recharged_amount": float(customer.total_recharged_amount or 0),
+        "created_at": customer.created_at.strftime("%Y-%m-%d %H:%M:%S") if customer.created_at else None,
+        "updated_at": customer.updated_at.strftime("%Y-%m-%d %H:%M:%S") if customer.updated_at else None,
+        
+        # 资产信息
+        "cards": [{
+            "card_number": card.card_number,
+            "card_uuid": card.card_uuid,
+            "status": card.status,
+            "bound_at": card.bound_at.strftime("%Y-%m-%d %H:%M") if card.bound_at else None
+        } for card in cards],
+        
+        "solar_units": [{
+            "shs_machine_id": unit.shs_machine_id,
+            "solar_equipment_id": unit.solar_equipment_id,
+            "radio_id": unit.radio_id,
+            "flashlight_id": unit.flashlight_id,
+            "led_light_id": unit.led_light_id,
+            "shs_status": unit.shs_status,
+            "bound_at": unit.bound_at.strftime("%Y-%m-%d %H:%M") if unit.bound_at else None
+        } for unit in solar_units],
+        
+        # 财务简报
+        "recent_transactions": [{
+            "transaction_id": tx.transaction_id,
+            "amount": float(tx.amount),
+            "days": float(tx.days),
+            "transaction_time": tx.transaction_time.strftime("%Y-%m-%d %H:%M"),
+            "action_type": tx.action_type,
+            "pos_sn": tx.pos_sn,
+            "operator_username": tx.operator_username
+        } for tx in recent_transactions]
+    }
+
+
+# --- 6. 编辑客户 (使用 PUT) ---
 @router.put("/{customer_id}")
 def update_customer(
     *,
@@ -166,123 +482,7 @@ def update_customer(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- 4. 批量导入 ---
-@router.post("/import")
-async def import_customers(
-    region_id: int = Query(..., description="Target Region ID"),
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: Any = Depends(get_finance_or_admin)
-):
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(status_code=400, detail="Please upload a valid Excel file.")
-
-    try:
-        contents = await file.read()
-        df = pd.read_excel(io.BytesIO(contents), dtype=str)
-        df = df.where(pd.notnull(df), None)
-        df.columns = [str(c).strip().lower() for c in df.columns]
-
-        existing_mobiles = {m[0] for m in db.query(Customer.mobile).all()}
-        batch_customers = []
-        skip_details = []
-        
-        for index, row in df.iterrows():
-            row_dict = row.to_dict()
-            row_dict = {k: (v.strip() if isinstance(v, str) else v) for k, v in row_dict.items() if v is not None}
-            
-            if 'gender' in row_dict and isinstance(row_dict['gender'], str):
-                row_dict['gender'] = row_dict['gender'].strip().lower()
-            
-            mobile = row_dict.get('mobile')
-            if not mobile or mobile in existing_mobiles:
-                reason = "重复/缺失手机号"
-                skip_details.append(f"行 {index + 2}: {reason}")
-                continue
-
-            try:
-                valid_data = CustomerExcelImport(**row_dict)
-                new_cust = Customer(
-                    **valid_data.dict(),
-                    region_id=region_id,
-                    uuid=get_snowflake_id() 
-                )
-                batch_customers.append(new_cust)
-                existing_mobiles.add(mobile) 
-            except Exception as row_err:
-                skip_details.append(f"行 {index + 2} 校验失败: {str(row_err)}")
-
-        if batch_customers:
-            db.add_all(batch_customers)
-            db.commit()
-            return {"status": "SUCCESS", "imported": len(batch_customers), "skipped": skip_details}
-        
-        return {"status": "EMPTY", "message": "无有效数据"}
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        await file.close()
-
-
-# --- 5. 导出 Excel ---
-@router.get("/export")
-def export_customers(
-    db: Session = Depends(get_db),
-    region_id: Optional[int] = Query(None),
-    current_user: Any = Depends(get_finance_or_admin)
-):
-    query = db.query(Customer).options(
-        joinedload(Customer.region).joinedload(Region.parent)
-    )
-    if region_id:
-        query = query.filter(Customer.region_id == region_id)
-    
-    customers = query.all()
-    export_data = []
-
-    for c in customers:
-        barangay, purok = "-", "-"
-        if c.region:
-            if c.region.level == 2 and c.region.parent:
-                # Level 2 is Purok, its parent is Barangay
-                barangay, purok = c.region.parent.name, c.region.name
-            elif c.region.level == 1:
-                # Level 1 is Barangay
-                barangay = c.region.name
-            else:
-                # Level 0 is Municipality
-                barangay = c.region.name
-
-        export_data.append({
-            "Customer ID": c.uuid,
-            "First Name": c.first_name,
-            "Last Name": c.last_name,
-            "Gender": c.gender,
-            "Mobile": c.mobile,
-            "Barangay": barangay,
-            "Purok": purok,
-            "Card UUID": "-",
-            "SHS Machine": "-",
-            "Solar Equipment": "-",
-            "Radio": "-",
-            "Flashlight": "-",
-            "LED Light": "-",
-            "Total Recharge": "-"
-        })
-
-    df = pd.DataFrame(export_data)
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
-    
-    output.seek(0)
-    filename = f"SHS_Export_{datetime.now().strftime('%Y%m%d')}.xlsx"
-    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename={filename}"})
-
-
-# --- 6. 删除客户 ---
+# --- 7. 删除客户 ---
 @router.delete("/{customer_id}")
 def delete_customer(
     *,

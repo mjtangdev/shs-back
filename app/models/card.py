@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, event
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base_class import Base
@@ -33,3 +33,10 @@ class Card(Base):
         foreign_keys=[customer_uuid],
         viewonly=True
     )
+
+# --- 强制强制大写逻辑 (Model Level Enforcement) ---
+@event.listens_for(Card, 'before_insert')
+@event.listens_for(Card, 'before_update')
+def force_upper_uuid(mapper, connection, target):
+    if target.card_uuid:
+        target.card_uuid = target.card_uuid.strip().upper()

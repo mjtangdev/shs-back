@@ -66,7 +66,19 @@ class POSSyncCustomerItem(BaseModel):
     card_uuid: Optional[str] = None
     shs_machine_id: Optional[str] = None
     status: int  # 1: 活跃, 0: 停用
-    expiry_date: Optional[datetime] = None 
+    
+    # 新增字段同步给 POS / New fields for POS
+    beneficiary_count: Optional[int] = 0
+    representative_name: Optional[str] = None
+    rep_relationship: Optional[str] = "-"
+
+    total_recharged_days: float = 0.0
+    total_recharged_amount: float = 0.0
+    installed_at: Optional[datetime] = None
+    region_name: Optional[str] = None
+    created_at: datetime
+
+    expiry_time: Optional[datetime] = None
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -130,16 +142,28 @@ class POSOfflineCustomerCreate(BaseModel):
     uuid: str
     first_name: str
     last_name: str
-    gender: str
-    mobile: str
+    gender: Optional[str] = "unknown"
+    mobile: Optional[str] = "-"
     email: Optional[str] = None
     birthday: Optional[datetime] = None
     address: Optional[str] = None
     region_id: int
+    
+    # POS 端离线开户支持的新字段
+    beneficiary_count: Optional[int] = 0
+    representative_name: Optional[str] = None
+    rep_relationship: Optional[str] = "-"
+
     card_uuid: Optional[str] = None      # 离线绑定的卡片
     shs_machine_id: Optional[str] = None # 离线绑定的设备
     created_at: datetime                 # POS 端的实际操作时间
     operator_username: str               # 强制必填：离线操作的实际业务员用户名
+
+class POSOfflineCustomerUpdate(BaseModel):
+    customer_uuid: str
+    card_uuid: Optional[str] = None
+    shs_machine_id: Optional[str] = None
+    installed_at: Optional[datetime] = None
 
 class POSLoginRequest(BaseModel):
     username: str
@@ -153,8 +177,9 @@ class POSLoginRequest(BaseModel):
 
 class POSSyncUploadRequest(BaseModel):
     pos_sn: Optional[str] = None
-    # 增量上传的变动数据
-    new_customers: List[POSOfflineCustomerCreate] = [] # 结构化后的客户列表
-    transactions: List[POSOfflineTransaction] = [] # 离线交易流水
+    # 按照业务逻辑解耦的三个数据桶
+    new_registrations: List[POSOfflineCustomerCreate] = [] # 新开户人员资料
+    asset_installations: List[POSOfflineCustomerUpdate] = [] # 安装/绑定动作
+    transactions: List[POSOfflineTransaction] = [] # 充值流水
 
     model_config = ConfigDict(from_attributes=True)

@@ -22,9 +22,19 @@ class Customer(Base):
     # 明确外键约束
     region_id = Column(Integer, ForeignKey("regions.id"), index=True, nullable=False)
     status = Column(Integer, default=1)
-    expiry_date = Column(DateTime, nullable=True, comment="服务到期时间")
+    
+    # 新增扩展字段 / New Extended Fields
+    electric_company = Column(String(200), nullable=True, comment="Associated with Provider Name")
+    beneficiary_count = Column(Integer, default=0, comment="Number of beneficiaries")
+    representative_name = Column(String(100), nullable=True, comment="Name of the Representative")
+    rep_relationship = Column(String(50), default="-", comment="Relationship with the representative")
+
+    expiry_time = Column(DateTime, index=True, nullable=True, comment="服务到期时间")
     total_recharged_days = Column(Numeric(10, 2), default=0, comment="累计充值天数")
     total_recharged_amount = Column(Numeric(10, 2), default=0, comment="累计充值金额")
+    
+    installed_at = Column(DateTime, nullable=True, comment="设备与卡片初次安装时间")
+
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -46,3 +56,15 @@ class Customer(Base):
         foreign_keys="[SolarUnit.customer_uuid]",
         viewonly=True
     )
+
+    @property
+    def card_uuid(self):
+        return self.cards[0].card_uuid if self.cards else None
+
+    @property
+    def shs_machine_id(self):
+        return self.solar_units[0].shs_machine_id if self.solar_units else None
+
+    @property
+    def region_name(self):
+        return self.region.full_name if self.region else "Unknown"

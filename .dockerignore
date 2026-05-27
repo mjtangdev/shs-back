@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.log
+.git
+.env
+static/uploads
+postgres_data
+Dockerfile
+docker-compose.yml
+alembic/
+*.pyc
