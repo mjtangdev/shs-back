@@ -21,8 +21,11 @@ docker-compose up -d --build
 # Initialize tables and basic accounts / 初始化表结构及基础账号
 docker exec -it shs-backend-api python init_db.py
 
+# [Production Test] Seed 5000 items & 60,000 transactions / [生产测试] 生成 5000 套设备及 6 万条流水
+docker exec -it shs-backend-api python seed_production_data.py
+
 # Seed 1240 unbound customers and inventory / 生成 1240 条测试数据
-docker exec -it shs_backend_container python seed_large_data.py
+docker exec -it shs-backend-api python seed_large_data.py
 ```
 
 ### 3. Multi-platform Build / 跨平台镜像打包
@@ -61,6 +64,9 @@ docker-compose up -d db
 
 # Reset/Clean all data / 彻底清空并重置所有业务数据
 ./.venv/bin/python init_db.py
+
+# [Production Test] Seed 5000 items & 60,000 transactions / [生产测试] 生成 5000 套设备及 6 万条流水
+./.venv/bin/python seed_production_data.py
 
 # Initialize a clean production-ready database (Admin only) / 初始化纯净生产数据库 (仅保留 admin)
 ./.venv/bin/python init_db_clean.py

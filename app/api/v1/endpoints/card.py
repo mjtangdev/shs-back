@@ -11,7 +11,7 @@ from app.api.deps import get_db, get_current_user, get_finance_or_admin
 from app.models.card import Card
 from app.models.customer import Customer
 from app.models.org import Region
-from app.schemas.card import CardCreate, CardResponse, CardList
+from app.schemas.card import CardCreate, CardResponse, CardList, CardUpdate
 
 router = APIRouter()
 
@@ -138,15 +138,22 @@ async def import_cards(
     
     batch, skipped = [], []
     for idx, row in df.iterrows():
-        n = str(row.get('card_number', '')).strip()
+        n = str(row.get('card_number', '')).strip() if row.get('card_number') else None
         u = str(row.get('card_uuid', '')).strip().upper() # Enforce Uppercase
         
-        if not n or not u or n in exist_nums or u in exist_uuids:
-            skipped.append(f"Row {idx+2}: Duplicate or Empty ID")
+        # 只要有 UUID 就可以放行入库
+        if not u or u in exist_uuids:
+            skipped.append(f"Row {idx+2}: Duplicate or Empty UUID")
+            continue
+        
+        # 只有在提供了卡号且卡号重复时才跳过
+        if n and n in exist_nums:
+            skipped.append(f"Row {idx+2}: Duplicate Card Number")
             continue
 
         batch.append(Card(card_number=n, card_uuid=u, status=0, created_at=datetime.now()))
-        exist_nums.add(n); exist_uuids.add(u)
+        if n: exist_nums.add(n)
+        exist_uuids.add(u)
 
     if batch:
         db.add_all(batch)
@@ -221,18 +228,48 @@ def export_cards(
         })
 
     df = pd.DataFrame(rows)
-    output = io.StringIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig')
-    csv_bytes = output.getvalue().encode('utf-8-sig')
     
-    filename = f"shs-iccard_{datetime.now().strftime('%Y%m%d')}.csv"
+    # 直接导出为 Excel (.xlsx) 格式
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='IC-Cards')
+    
+    output.seek(0)
+    filename = f"shs-iccard_{datetime.now().strftime('%Y%m%d')}.xlsx"
     return StreamingResponse(
-        io.BytesIO(csv_bytes), 
-        media_type="text/csv", 
+        output, 
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-# --- 5. 删除卡片 (Delete) ---
+# --- 5. 更新卡片 (Update) ---
+@router.put("/{card_id}")
+def update_card(
+    card_id: int,
+    card_in: CardUpdate,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    card = db.query(Card).filter(Card.id == card_id).first()
+    if not card:
+        raise HTTPException(status_code=404, detail="Card not found")
+
+    # 只允许更新 card_number
+    if card_in.card_number is not None:
+        # 检查卡号冲突
+        if card_in.card_number != card.card_number:
+            existing = db.query(Card).filter(Card.card_number == card_in.card_number).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Physical Card Number already exists")
+        card.card_number = card_in.card_number
+
+    card.updated_at = datetime.now()
+    db.add(card)
+    db.commit()
+    db.refresh(card)
+    return {"status": "success", "id": card.id}
+
+# --- 6. 删除卡片 (Delete) ---
 @router.delete("/{card_id}")
 def delete_card(card_id: int, db: Session = Depends(get_db), current_user: Any = Depends(get_finance_or_admin)):
     card = db.query(Card).filter(Card.id == card_id).first()

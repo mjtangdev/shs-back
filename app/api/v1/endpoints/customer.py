@@ -2,12 +2,15 @@ from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from sqlalchemy.exc import IntegrityError
 import pandas as pd
 import io
+import logging
 from datetime import datetime
 from snowflake import SnowflakeGenerator
+
+logger = logging.getLogger(__name__)
 
 # 这里的 1 是机器 ID (Worker ID)
 gen = SnowflakeGenerator(1)
@@ -36,19 +39,28 @@ def get_customers(
     region_id: Optional[int] = Query(None),
     search: Optional[str] = Query(None),
     expired_only: bool = Query(False, description="Filter only expired customers"),
+    is_bound: Optional[bool] = Query(None, description="Filter by device binding status"),
     current_user: Any = Depends(get_current_user)
 ) -> Any:
     """获取客户列表，自动拼接地区层级名字"""
     query = db.query(Customer).options(
-        joinedload(Customer.region).joinedload(Region.parent)
+        joinedload(Customer.region).joinedload(Region.parent),
+        selectinload(Customer.solar_units) # 预加载设备信息以判断绑定状态
     )
 
     if expired_only:
-        # 只展示“已经充值过但已过期”的客户 (即 expiry_time 不为空且早于当前时间)
         now = datetime.now()
         query = query.filter(Customer.expiry_time != None, Customer.expiry_time < now)
 
-    # 确定过滤的基础 region_id (业务员强制使用自身地区，管理员/财务使用参数)
+    if is_bound is not None:
+        if is_bound:
+            # 筛选已绑定设备的客户
+            query = query.filter(Customer.solar_units.any())
+        else:
+            # 筛选未绑定设备的客户
+            query = query.filter(~Customer.solar_units.any())
+
+    # 确定过滤的基础 region_id
     filter_region_id = current_user.region_id if current_user.role == 2 else region_id
 
     if filter_region_id is not None:
@@ -106,6 +118,7 @@ def get_customers(
             "expiry_time": c.expiry_time.strftime("%Y-%m-%d %H:%M:%S") if c.expiry_time else None,
             "total_recharged_days": float(c.total_recharged_days or 0),
             "total_recharged_amount": float(c.total_recharged_amount or 0),
+            "is_bound": len(c.solar_units) > 0,
             "created_at": c.created_at.strftime("%Y-%m-%d %H:%M:%S") if c.created_at else None
         })
 
@@ -208,19 +221,35 @@ def export_customers(
 
     df = pd.DataFrame(export_data)
     
-    # 将 DataFrame 转换为 CSV 字节流，并添加 UTF-8 BOM 以防 Excel 乱码
-    output = io.StringIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig') # 'utf-8-sig' 会自动添加 BOM
+    # 直接导出为 Excel (.xlsx) 格式，彻底解决乱码问题
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Customers')
     
-    csv_bytes = output.getvalue().encode('utf-8-sig')
-    
-    filename = f"SHS_Export_{datetime.now().strftime('%Y%m%d')}.csv"
+    output.seek(0)
+    filename = f"SHS_Export_{datetime.now().strftime('%Y%m%d')}.xlsx"
     return StreamingResponse(
-        io.BytesIO(csv_bytes), 
-        media_type="text/csv", 
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cache-Control": "no-cache"
+        }
     )
 
+
+def generate_customer_uuid(db: Session):
+    """
+    生成 8 位纯数字客户 ID
+    规则：01 (Web前缀) + 6位流水
+    """
+    # 查找当前最大的 Web 客户 ID (以 01 开头的)
+    max_id = db.query(func.max(Customer.uuid)).filter(Customer.uuid.like('01%')).scalar()
+    if not max_id:
+        return "01000001"
+    
+    next_num = int(max_id[2:]) + 1
+    return f"01{next_num:06d}"
 
 # --- 3. 手动创建 ---
 @router.post("/create")
@@ -230,28 +259,29 @@ def create_customer(
     customer_in: CustomerCreate,
     current_user: Any = Depends(get_finance_or_admin)
 ) -> Any:
-    """手动录入，自动生成雪花 ID，并统一性别为小写"""
+    """手动录入，生成 8 位 Web 专属 ID"""
     existing = db.query(Customer).filter(Customer.mobile == customer_in.mobile).first()
     if existing:
         raise HTTPException(status_code=400, detail="Mobile already exists")
 
     update_data = customer_in.dict()
+    # ... 处理性别和公司名称逻辑 ...
     if "gender" in update_data and isinstance(update_data["gender"], str):
         update_data["gender"] = update_data["gender"].strip().lower()
-
-    # 获取总公司名称作为 Electric Company
+    
     provider = db.query(ProviderConfig).first()
     electric_company_name = provider.name if provider else "-"
 
     try:
-        # 处理代表姓名逻辑
+        # 使用新的 8 位生成逻辑
+        new_uuid = generate_customer_uuid(db)
+        
         full_name = f"{customer_in.first_name} {customer_in.last_name}"
         update_data["representative_name"] = customer_in.representative_name if customer_in.representative_name and customer_in.representative_name.strip() else full_name
-        update_data["rep_relationship"] = customer_in.rep_relationship or "-"
         
         new_obj = Customer(
             **update_data,
-            uuid=get_snowflake_id(), 
+            uuid=new_uuid,
             electric_company=electric_company_name,
             created_at=datetime.now()
         )
@@ -343,7 +373,9 @@ async def import_customers(
                 batch_customers.append(new_cust)
                 existing_mobiles.add(mobile) 
             except Exception as row_err:
-                skip_details.append(f"行 {index + 2} 校验失败: {str(row_err)}")
+                err_msg = f"行 {index + 2} 校验失败: {str(row_err)}"
+                skip_details.append(err_msg)
+                logger.warning(f"Excel Import Row Error: {err_msg}")
 
         if batch_customers:
             db.add_all(batch_customers)
@@ -488,11 +520,18 @@ def delete_customer(
     *,
     db: Session = Depends(get_db),
     customer_id: int,
-    current_user: Any = Depends(get_current_admin_user)
+    current_user: Any = Depends(get_finance_or_admin)
 ) -> Any:
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
+
+    # 保护逻辑：已绑定设备或卡片的客户不允许删除
+    if customer.solar_units or customer.cards:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete customer with active assets (Devices/Cards). Please unbind assets first."
+        )
 
     try:
         db.delete(customer)

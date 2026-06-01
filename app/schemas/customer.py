@@ -5,11 +5,11 @@ from datetime import date, datetime
 class CustomerBase(BaseModel):
     first_name: str = Field(..., max_length=50)
     last_name: str = Field(..., max_length=50)
-    # 改为不区分大小写的匹配
-    gender: str = Field(..., pattern="^(?i)(male|female)$")
+    # 性别校验：支持大小写，在后端统一处理
+    gender: str = Field(..., pattern="^(male|female|MALE|FEMALE|Male|Female)$")
     mobile: str = Field(..., max_length=20)
     email: Optional[EmailStr] = Field(None, max_length=100)
-    birthday: date # 强制生日必填
+    birthday: Optional[date] = None # 生日现在是选填的
     address: Optional[str] = Field(None, max_length=255) # 详细地址现在是选填的
     
     # 新增字段
@@ -25,7 +25,7 @@ class CustomerUpdate(BaseModel):
     """用于 PUT 编辑的校验模型，所有字段均为可选"""
     first_name: Optional[str] = Field(None, max_length=50)
     last_name: Optional[str] = Field(None, max_length=50)
-    gender: Optional[str] = Field(None, pattern="^(?i)(male|female)$")
+    gender: Optional[str] = Field(None, pattern="^(male|female|MALE|FEMALE|Male|Female)$")
     mobile: Optional[str] = Field(None, max_length=20)
     email: Optional[EmailStr] = Field(None, max_length=100)
     birthday: Optional[date] = None

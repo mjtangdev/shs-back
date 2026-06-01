@@ -36,14 +36,13 @@ def format_pos_sn(sn: str) -> str:
     return sn
 
 
-# --- 0. 公开查询接口 (用于 POS 静默检测) ---
+# --- 0. 公开查询接口 (用于 POS 静默检测与心跳) ---
 @router.get("/check/{pos_sn}")
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 def check_pos_existence(request: Request, pos_sn: str, db: Session = Depends(get_db)):
     """
-    公开接口：查询 POS 是否在系统中登记。
-    不要求权限校验，供 POS 终端静默发起。
-    设置了限流：每个 IP 每分钟最多查询 5 次。
+    公开接口：查询 POS 是否在系统中登记及当前状态。
+    支持频率：30次/分钟 (足以应对网络重试)
     """
     sn = format_pos_sn(pos_sn)
     pos = db.query(POSMachine).options(joinedload(POSMachine.assigned_user)).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
@@ -52,34 +51,53 @@ def check_pos_existence(request: Request, pos_sn: str, db: Session = Depends(get
         return {
             "exists": False,
             "pos_sn": sn,
-            "status": None,
-            "lock_status": None,
-            "branch_office": None,
-            "reconciliation_deadline": None,
-            "assigned_user_id": None,
-            "assigned_user_name": None,
             "message": "Device not registered"
         }
 
-    # --- 自动对账锁定逻辑 ---
-    if pos.reconciliation_deadline and datetime.now() > pos.reconciliation_deadline:
-        if pos.lock_status == 0:
-            pos.lock_status = 2  # 自动设为财务锁
-            pos.last_lock_reason = "System: Reconciliation deadline expired"
-            pos.last_action_by = "SYSTEM"
-            record_log(db, pos.pos_sn, "AUTO_LOCK", "SYSTEM", "Reconciliation deadline expired")
-            db.commit()
+    # --- 自动对账锁定逻辑 (仅在正常状态下触发检查) ---
+    if pos.lock_status == 0 and pos.reconciliation_deadline and datetime.now() > pos.reconciliation_deadline:
+        pos.lock_status = 2  # 自动设为财务锁
+        pos.last_lock_reason = "System: Reconciliation deadline expired"
+        pos.last_action_by = "SYSTEM"
+        record_log(db, pos.pos_sn, "AUTO_LOCK", "SYSTEM", "Reconciliation deadline expired")
+        db.commit()
 
     return {
         "exists": True,
         "pos_sn": pos.pos_sn,
         "status": pos.status,
         "lock_status": pos.lock_status,
+        "lock_reason": pos.last_lock_reason or "Normal",
+        "last_action_by": pos.last_action_by or "System",
         "branch_office": pos.branch_office,
-        "reconciliation_deadline": pos.reconciliation_deadline,
-        "assigned_user_id": pos.assigned_user_id,
-        "assigned_user_name": f"{pos.assigned_user.first_name} {pos.assigned_user.last_name}" if pos.assigned_user else None,
-        "message": "Device found"
+        "reconciliation_deadline": pos.reconciliation_deadline.strftime("%Y-%m-%d %H:%M:%S") if pos.reconciliation_deadline else None,
+        "assigned_user_name": f"{pos.assigned_user.first_name} {pos.assigned_user.last_name}" if pos.assigned_user else "Unassigned",
+        "server_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+
+@router.get("/sync-status/{pos_sn}")
+def get_pos_heartbeat_status(
+    pos_sn: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    POS 专用同步接口：
+    POS 终端应每隔 15-30 秒调用此接口
+    """
+    sn = format_pos_sn(pos_sn)
+    pos = db.query(POSMachine).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
+    
+    if not pos:
+        raise HTTPException(status_code=404, detail="Device not registered")
+
+    return {
+        "is_locked": pos.lock_status != 0,
+        "lock_type": pos.lock_status,
+        "lock_reason": pos.last_lock_reason,
+        "user_active": current_user.is_active,
+        "server_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
 
@@ -254,6 +272,10 @@ def delete_pos(pos_sn: str, db: Session = Depends(get_db), user: Any = Depends(g
     pos = db.query(POSMachine).filter(POSMachine.pos_sn == pos_sn).first()
     if not pos: raise HTTPException(404, "Device not found")
     
+    # 保护逻辑：已分配(status=1)的 POS 不允许直接删除
+    if pos.status == 1:
+        raise HTTPException(status_code=400, detail="Cannot delete an assigned POS terminal. Please unassign it first.")
+
     pos.is_deleted = True
     record_log(db, pos_sn, "DELETE", user, "Soft deleted from system")
     db.commit()

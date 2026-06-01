@@ -295,14 +295,17 @@ def export_solar_units(
         })
 
     df = pd.DataFrame(export_data)
-    output = io.StringIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig')
-    csv_bytes = output.getvalue().encode('utf-8-sig')
     
-    filename = f"SHS_Inventory_{datetime.now().strftime('%Y%m%d')}.csv"
+    # 直接导出为 Excel (.xlsx) 格式
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Inventory')
+    
+    output.seek(0)
+    filename = f"SHS_Inventory_{datetime.now().strftime('%Y%m%d')}.xlsx"
     return StreamingResponse(
-        io.BytesIO(csv_bytes), 
-        media_type="text/csv", 
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 

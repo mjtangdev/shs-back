@@ -63,31 +63,31 @@ class POSSyncCustomerItem(BaseModel):
     uuid: str
     first_name: str
     last_name: str
-    card_uuid: Optional[str] = None
-    shs_machine_id: Optional[str] = None
+    card_uuid: str | None = None
+    shs_machine_id: str | None = None
     status: int  # 1: 活跃, 0: 停用
     
     # 新增字段同步给 POS / New fields for POS
-    beneficiary_count: Optional[int] = 0
-    representative_name: Optional[str] = None
-    rep_relationship: Optional[str] = "-"
+    beneficiary_count: int | None = 0
+    representative_name: str | None = None
+    rep_relationship: str | None = "-"
 
     total_recharged_days: float = 0.0
     total_recharged_amount: float = 0.0
-    installed_at: Optional[datetime] = None
-    region_name: Optional[str] = None
+    installed_at: datetime | None = None
+    region_name: str | None = None
     created_at: datetime
 
-    expiry_time: Optional[datetime] = None
+    expiry_time: datetime | None = None
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 
 class POSSyncCardItem(BaseModel):
     id: int
-    card_number: str
+    card_number: str | None = None
     card_uuid: str
-    customer_uuid: Optional[str] = None
+    customer_uuid: str | None = None
     status: int
     updated_at: datetime
     
@@ -129,9 +129,9 @@ class POSOfflineTransaction(BaseModel):
     transaction_id: str          # POS 端生成的唯一交易 ID
     customer_uuid: str
     card_uuid: str
-    days: float = Field(..., gt=0, description="充值天数")
+    days: float = Field(..., description="充值天数")
     shs_machine_id: Optional[str] = None
-    amount: float = Field(..., gt=0, description="充值金额，必须大于0") # 强制金额大于0
+    amount: float = Field(..., description="充值金额")
     transaction_time: datetime
     action_type: str            # RECHARGE (充值), COLLECT (收款) 等
     operator_username: str      # 强制必填：离线操作的实际业务员用户名

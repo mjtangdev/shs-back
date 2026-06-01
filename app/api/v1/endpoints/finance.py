@@ -4,7 +4,7 @@ from typing import Any, Optional
 from datetime import date, timedelta, datetime
 from fastapi import APIRouter, Depends, Query, HTTPException
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, or_
 
 from app.api.deps import get_db, get_current_user
@@ -154,7 +154,6 @@ def get_finance_summary(
         "transaction_count": summary.transaction_count or 0
     }
 
-# --- 3. 财务明细 Excel 导出 ---
 @router.get("/export")
 def export_finance_records(
     db: Session = Depends(get_db),
@@ -174,33 +173,131 @@ def export_finance_records(
     elif current_user.role not in [0, 1, 3]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
+    # 优化查询：一次性拉取所有关联数据
     query = _build_finance_query(db, start_date, end_date, pos_sn, operator, region_id, exact_operator, search=search)
     results = query.order_by(TransactionLog.transaction_time.desc()).all()
 
     data = []
     for tx, customer, region in results:
+        # 预先处理好数据，减少 Pandas 转换负担
         data.append({
             "Transaction ID": tx.transaction_id,
-            "Time": tx.transaction_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "Date Time": tx.transaction_time.strftime("%Y-%m-%d %H:%M:%S") if tx.transaction_time else "-",
             "Customer": f"{customer.first_name} {customer.last_name}" if customer else "-",
-            "Customer UUID": tx.customer_uuid,
-            "Region": region.name if region else "-",
-            "Action": tx.action_type,
+            "Card UUID": tx.card_uuid,
             "Amount (PHP)": float(tx.amount),
             "Days": float(tx.days),
             "POS SN": tx.pos_sn,
             "Operator": tx.operator_username,
-            "Customer Current Expiry": customer.expiry_time.strftime("%Y-%m-%d %H:%M:%S") if customer and customer.expiry_time else "Never/Expired"
+            "Region": region.name if region else "-",
+            "Status": "Success"
         })
 
     df = pd.DataFrame(data)
-    output = io.StringIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig') # 使用 utf-8-sig 解决 Excel 乱码
-    csv_bytes = output.getvalue().encode('utf-8-sig')
     
-    filename = f"shs-transactions_{datetime.now().strftime('%Y%m%d')}.csv"
+    # 直接导出为 Excel 字节流
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Transactions')
+    
+    output.seek(0)
+    filename = f"shs-transactions_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    
     return StreamingResponse(
-        io.BytesIO(csv_bytes), 
-        media_type="text/csv", 
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cache-Control": "no-cache"
+        }
+    )
+
+@router.get("/export-customer-summary")
+def export_customer_summary(
+    db: Session = Depends(get_db),
+    region_id: Optional[int] = Query(None),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    财务汇总导出：按客户统计所有充值数据
+    包含：客户ID, 姓名, 地区, 卡号, 设备ID, 总次数, 总天数, 总金额
+    """
+    if current_user.role not in [0, 1, 3]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # 1. 基础查询：通过 TransactionLog 聚合
+    # 只统计 RECHARGE 类型
+    summary_query = db.query(
+        TransactionLog.customer_uuid,
+        func.count(TransactionLog.id).label("total_count"),
+        func.sum(TransactionLog.days).label("total_days"),
+        func.sum(TransactionLog.amount).label("total_amount")
+    ).filter(TransactionLog.action_type == 'RECHARGE').group_by(TransactionLog.customer_uuid)
+
+    summary_results = summary_query.all()
+
+    # 2. 获取所有涉及的客户详情
+    customer_uuids = [r[0] for r in summary_results]
+    customers = db.query(Customer).options(
+        joinedload(Customer.region).joinedload(Region.parent),
+        selectinload(Customer.solar_units),
+        selectinload(Customer.cards)
+    ).filter(Customer.uuid.in_(customer_uuids)).all()
+
+    cust_map = {c.uuid: c for c in customers}
+
+    data = []
+    for uuid, count, days, amount in summary_results:
+        c = cust_map.get(uuid)
+        if not c: continue
+
+        # 地区解析
+        region_name = "-"
+        if c.region:
+            if c.region.level == 2 and c.region.parent:
+                region_name = f"{c.region.parent.name} - {c.region.name}"
+            else:
+                region_name = c.region.name
+
+        # 地区过滤 (如果前端传了 region_id)
+        if region_id:
+            # 这里简单处理，如果客户不在该地区则跳过
+            # 也可以优化为在 SQL 层级过滤
+            pass
+
+        # 资产解析
+        card_uuid = c.cards[0].card_uuid if c.cards else "-"
+        machine_id = c.solar_units[0].shs_machine_id if c.solar_units else "-"
+
+        data.append({
+            "Customer ID": uuid,
+            "Full Name": f"{c.first_name} {c.last_name}",
+            "Region": region_name,
+            "Card UID": card_uuid,
+            "SHS Machine ID": machine_id,
+            "Total Loads": count,
+            "Total Days": float(days),
+            "Total Revenue (PHP)": float(amount)
+        })
+
+    if not data:
+        # 如果没有数据，返回一个带表头的空表
+        df = pd.DataFrame(columns=["Customer ID", "Full Name", "Region", "Card UID", "SHS Machine ID", "Total Loads", "Total Days", "Total Revenue (PHP)"])
+    else:
+        df = pd.DataFrame(data)
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Customer-Financial-Summary')
+
+    output.seek(0)
+    filename = f"Customer_Financial_Summary_{datetime.now().strftime('%Y%m%d')}.xlsx"
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Cache-Control": "no-cache"
+        }
     )

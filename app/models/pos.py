@@ -14,6 +14,9 @@ class POSMachine(Base):
     # SN 码降级为唯一索引，但不作为主键
     pos_sn = Column(String(16), unique=True, index=True, nullable=False)
     
+    # 新增：2位号段代码 (10-99)，用于生成 8 位客户 ID
+    pos_code = Column(String(2), unique=True, index=True, nullable=True)
+    
     # 状态字段
     status = Column(Integer, default=0)         # 0: In Stock (在库), 1: Assigned (已分配), 2: Damaged (损坏)
     lock_status = Column(Integer, default=0)    # 0: Normal (正常), 1: Admin Locked (管理员锁), 2: Finance Locked (财务锁)

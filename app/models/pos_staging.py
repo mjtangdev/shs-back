@@ -26,8 +26,6 @@ class POSStagingTransaction(Base):
     
     upload_time = Column(DateTime, default=datetime.now) # 数据上传到后台的时间
     
-    # 数据库层面强制金额大于0
-    __table_args__ = ({"check_constraint": "amount > 0"}),
     processed_status = Column(Integer, default=0) # 0: Pending, 1: Processed, 2: Failed
     processing_error = Column(Text, nullable=True) # 记录处理失败的错误信息
 

@@ -9,3 +9,7 @@ Dockerfile
 docker-compose.yml
 alembic/
 *.pyc
+
+# Exclude build scripts
+build_and_push.sh
+build_and_push.bat

@@ -167,25 +167,42 @@ def update_user(
 @router.delete("/delete")
 def delete_user(
     user_id: int = Body(..., embed=True),
+    admin_password: str = Body(..., embed=True),
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """逻辑删除用户 - ID 通过 Body 传递"""
+    """逻辑删除用户 - 自动解绑 POS 且需要管理员密码"""
+    from app.core.auth_utils import verify_password
+
+    # 1. 验证管理员密码
+    if not verify_password(admin_password, current_admin.password_hash):
+        raise HTTPException(status_code=401, detail="Administrative authorization failed: Incorrect password")
+
+    # 2. 查找目标用户
     db_user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # 权限保护：禁止删除同级或更高级别的账号
-    if db_user.role <= current_admin.role and current_admin.role != 0:
+    # 3. 权限保护：禁止删除同级或更高级别的账号
+    if db_user.role <= current_admin.role and db_user.id != current_admin.id and current_admin.role != 0:
         raise HTTPException(status_code=403, detail="Permission denied: Cannot delete an account at this level")
 
     if db_user.id == current_admin.id:
         raise HTTPException(status_code=400, detail="Administrative accounts cannot self-terminate")
 
-    # 执行逻辑删除
+    # 4. 自动解绑关联资产 (POS)
+    if db_user.pos_machine:
+        pos = db_user.pos_machine
+        pos.assigned_user_id = None
+        pos.status = 0  # 自动回库
+        db.add(pos)
+        logger.info(f"📋 User {db_user.username} deleted. POS {pos.pos_sn} automatically unassigned and returned to stock.")
+
+    # 5. 执行逻辑删除
+    db_user.is_active = False
     db_user.is_deleted = True
     db.commit()
-    return {"status": "success", "message": f"User {user_id} has been deactivated"}
+    return {"status": "success", "message": f"User {db_user.username} deactivated and unassigned"}
 
 # --- 5. 用户修改自己的密码 ---
 @router.patch("/me/change-password")

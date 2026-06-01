@@ -13,3 +13,1221 @@ INFO:     127.0.0.1:57232 - "OPTIONS /api/v1/customer/?skip=0&limit=50 HTTP/1.1"
 INFO:     127.0.0.1:57233 - "GET /api/v1/customer/?skip=0&limit=50 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57231 - "GET /api/v1/org/regions/tree HTTP/1.1" 200 OK
 INFO:     127.0.0.1:57235 - "GET /api/v1/org/regions/tree HTTP/1.1" 200 OK
+2026-05-27 21:59:05,628 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 03:02:59,544 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:07:44,392 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:10:53,619 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:16:34,798 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:24:04,351 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:26:28,820 - WARNING - ⚠️ Business Error at /api/v1/solar_device/: 401 - User not found
+2026-05-28 11:26:28,821 - WARNING - ⚠️ Business Error at /api/v1/org/regions/tree: 401 - User not found
+2026-05-28 11:36:50,653 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:38:52,631 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 11:55:14,217 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 12:01:06,211 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 14:25:20,542 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:10:36,075 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:29:59,174 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:36:35,952 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:45:04,990 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:45:19,316 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:45:30,512 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:45:40,849 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:51:02,130 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:52:13,213 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:52:19,134 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 16:52:25,877 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 17:10:04,417 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 17:16:43,370 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 17:25:43,220 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 17:29:36,032 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 18:00:24,576 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 18:02:58,578 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 18:03:22,098 - WARNING - ⚠️ Business Error at /api/v1/org/regions/tree: 401 - User not found
+2026-05-28 18:03:22,463 - WARNING - ⚠️ Business Error at /api/v1/finance/transactions: 401 - Not authenticated
+2026-05-28 18:03:22,464 - WARNING - ⚠️ Business Error at /api/v1/finance/summary: 401 - Not authenticated
+2026-05-28 18:03:35,006 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-05-28 18:36:20,380 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 18:38:46,464 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 18:40:32,223 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 18:40:48,490 - WARNING - ⚠️ Business Error at /api/v1/finance/transactions: 401 - User not found
+2026-05-28 18:40:48,491 - WARNING - ⚠️ Business Error at /api/v1/dashboard/stats: 401 - User not found
+2026-05-28 18:40:48,496 - WARNING - ⚠️ Business Error at /api/v1/org/regions/tree: 401 - User not found
+2026-05-28 18:51:58,210 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 19:23:43,297 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 19:27:24,630 - ERROR - System Error: /api/v1/finance/export-customer-summary - name 'joinedload' is not defined
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/finance.py", line 242, in export_customer_summary
+    joinedload(Customer.region).joinedload(Region.parent),
+    ^^^^^^^^^^
+NameError: name 'joinedload' is not defined
+2026-05-28 19:27:48,532 - ERROR - System Error: /api/v1/finance/export-customer-summary - name 'joinedload' is not defined
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/finance.py", line 242, in export_customer_summary
+    joinedload(Customer.region).joinedload(Region.parent),
+    ^^^^^^^^^^
+NameError: name 'joinedload' is not defined
+2026-05-28 19:28:29,165 - INFO - --- 正在检查并创建表结构 ---
+2026-05-28 19:28:47,184 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 10:37:49,492 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 13:13:22,913 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 14:23:49,762 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 14:23:56,564 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 15:37:21,498 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 16:12:59,209 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 16:13:24,007 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 16:16:13,527 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 16:55:46,625 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 16:59:32,435 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 16:59:42,953 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 17:28:43,658 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 18:13:19,883 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 18:22:44,849 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 18:35:20,262 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 18:35:20,486 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-29 18:35:20,486 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-29 18:35:20,486 - INFO - Scheduler started
+2026-05-29 18:35:20,486 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-29 18:36:10,823 - INFO - Scheduler has been shut down
+2026-05-29 19:38:46,886 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 19:38:47,323 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-29 19:38:47,323 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-29 19:38:47,323 - INFO - Scheduler started
+2026-05-29 19:38:47,323 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-29 19:42:31,259 - INFO - Scheduler has been shut down
+2026-05-29 19:42:33,283 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 19:42:33,541 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-29 19:42:33,542 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-29 19:42:33,542 - INFO - Scheduler started
+2026-05-29 19:42:33,542 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-29 19:46:43,489 - INFO - Scheduler has been shut down
+2026-05-29 19:46:50,028 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 19:46:51,267 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-29 19:46:51,268 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-29 19:46:51,268 - INFO - Scheduler started
+2026-05-29 19:46:51,270 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-29 19:47:04,609 - INFO - Scheduler has been shut down
+2026-05-29 19:47:09,840 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 19:47:10,225 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-29 19:47:10,226 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-29 19:47:10,226 - INFO - Scheduler started
+2026-05-29 19:47:10,227 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-29 19:49:35,277 - INFO - Scheduler has been shut down
+2026-05-29 19:49:37,819 - INFO - --- 正在检查并创建表结构 ---
+2026-05-29 19:49:38,021 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-29 19:49:38,021 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-29 19:49:38,021 - INFO - Scheduler started
+2026-05-29 19:49:38,021 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-29 19:49:40,248 - INFO - Scheduler has been shut down
+2026-05-30 21:53:56,908 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 21:53:57,063 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 21:53:57,063 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 21:53:57,063 - INFO - Scheduler started
+2026-05-30 21:53:57,063 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 21:56:18,562 - INFO - Scheduler has been shut down
+2026-05-30 21:56:19,946 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 21:56:20,071 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 21:56:20,071 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 21:56:20,071 - INFO - Scheduler started
+2026-05-30 21:56:20,072 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:06:11,507 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:06:11,722 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:06:11,722 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:06:11,722 - INFO - Scheduler started
+2026-05-30 22:06:11,722 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:06:24,367 - ERROR - System Error: /api/v1/finance/transactions - 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/finance.py", line 76, in get_transactions
+    GET /api/v1/finance/transactions
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 122, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_uuid'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/finance.py", line 76, in get_transactions
+    GET /api/v1/finance/transactions
+2026-05-30 22:07:26,006 - INFO - Scheduler has been shut down
+2026-05-30 22:07:27,095 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:07:27,176 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:07:27,177 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:07:27,177 - INFO - Scheduler started
+2026-05-30 22:07:27,177 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:15:30,908 - INFO - Scheduler has been shut down
+2026-05-30 22:15:32,174 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:15:32,393 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:15:32,393 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:15:32,394 - INFO - Scheduler started
+2026-05-30 22:15:32,394 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:16:25,734 - INFO - Scheduler has been shut down
+2026-05-30 22:16:27,805 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:16:27,941 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:16:27,942 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:16:27,942 - INFO - Scheduler started
+2026-05-30 22:16:27,942 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:20:49,145 - INFO - Scheduler has been shut down
+2026-05-30 22:20:50,874 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:20:51,010 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:20:51,011 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:20:51,011 - INFO - Scheduler started
+2026-05-30 22:20:51,011 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:28:04,356 - INFO - Scheduler has been shut down
+2026-05-30 22:28:06,031 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:28:06,217 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:28:06,217 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:28:06,217 - INFO - Scheduler started
+2026-05-30 22:28:06,217 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:28:18,256 - INFO - Scheduler has been shut down
+2026-05-30 22:28:19,351 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:28:19,441 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:28:19,441 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:28:19,441 - INFO - Scheduler started
+2026-05-30 22:28:19,442 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:28:56,824 - INFO - Scheduler has been shut down
+2026-05-30 22:38:17,766 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:38:18,109 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:38:18,109 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:38:18,109 - INFO - Scheduler started
+2026-05-30 22:38:18,110 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:38:18,919 - INFO - Scheduler has been shut down
+2026-05-30 22:40:30,337 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:40:30,436 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:40:30,436 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:40:30,436 - INFO - Scheduler started
+2026-05-30 22:40:30,437 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:46:08,482 - INFO - Scheduler has been shut down
+2026-05-30 22:46:10,157 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:46:10,391 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:46:10,391 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:46:10,391 - INFO - Scheduler started
+2026-05-30 22:46:10,391 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-30 22:47:40,816 - INFO - Scheduler has been shut down
+2026-05-30 22:47:42,271 - INFO - --- 正在检查并创建表结构 ---
+2026-05-30 22:47:42,405 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-30 22:47:42,405 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-30 22:47:42,405 - INFO - Scheduler started
+2026-05-30 22:47:42,405 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:32:46,038 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:32:46,434 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:32:46,435 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:32:46,435 - INFO - Scheduler started
+2026-05-31 19:32:46,435 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:36:47,934 - INFO - Scheduler has been shut down
+2026-05-31 19:36:50,379 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:36:50,856 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:36:50,856 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:36:50,856 - INFO - Scheduler started
+2026-05-31 19:36:50,857 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:39:18,813 - ERROR - System Error: /api/v1/user/ - (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "users_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO users (username, password_hash, role, is_active, is_deleted, first_name, middle_name, last_name, mobile, landline, email, ice_name, ice_phone, province, region_id, address, created_at) VALUES (%(username)s, %(password_hash)s, %(role)s, %(is_active)s, %(is_deleted)s, %(first_name)s, %(middle_name)s, %(last_name)s, %(mobile)s, %(landline)s, %(email)s, %(ice_name)s, %(ice_phone)s, %(province)s, %(region_id)s, %(address)s, %(created_at)s) RETURNING users.id]
+[parameters: {'username': 'opera', 'password_hash': '$2b$12$ggy8ewtTDjgtQxhIXGfK8edQ6xHz5mpa1WAb0tp6IGzkysFBLgoLy', 'role': 2, 'is_active': True, 'is_deleted': False, 'first_name': 'test', 'middle_name': None, 'last_name': 'opera', 'mobile': '12323', 'landline': None, 'email': 'test@test.com', 'ice_name': None, 'ice_phone': None, 'province': 'Pangasinan', 'region_id': 3, 'address': 'Default HQ', 'created_at': datetime.datetime(2026, 5, 31, 19, 39, 18, 793462)}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "users_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 122, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 674, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 330, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 32, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2518, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1002, in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/users.py", line 94, in create_user
+    db.commit()
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2030, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 1311, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/state_changes.py", line 137, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 1286, in _prepare_impl
+    self.session.flush()
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 4331, in flush
+    self._flush(objects)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 4466, in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/util/langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 4427, in _flush
+    flush_context.execute()
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/orm/persistence.py", line 1233, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.IntegrityError: (psycopg2.errors.UniqueViolation) duplicate key value violates unique constraint "users_pkey"
+DETAIL:  Key (id)=(1) already exists.
+
+[SQL: INSERT INTO users (username, password_hash, role, is_active, is_deleted, first_name, middle_name, last_name, mobile, landline, email, ice_name, ice_phone, province, region_id, address, created_at) VALUES (%(username)s, %(password_hash)s, %(role)s, %(is_active)s, %(is_deleted)s, %(first_name)s, %(middle_name)s, %(last_name)s, %(mobile)s, %(landline)s, %(email)s, %(ice_name)s, %(ice_phone)s, %(province)s, %(region_id)s, %(address)s, %(created_at)s) RETURNING users.id]
+[parameters: {'username': 'opera', 'password_hash': '$2b$12$ggy8ewtTDjgtQxhIXGfK8edQ6xHz5mpa1WAb0tp6IGzkysFBLgoLy', 'role': 2, 'is_active': True, 'is_deleted': False, 'first_name': 'test', 'middle_name': None, 'last_name': 'opera', 'mobile': '12323', 'landline': None, 'email': 'test@test.com', 'ice_name': None, 'ice_phone': None, 'province': 'Pangasinan', 'region_id': 3, 'address': 'Default HQ', 'created_at': datetime.datetime(2026, 5, 31, 19, 39, 18, 793462)}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2026-05-31 19:40:00,562 - INFO - Scheduler has been shut down
+2026-05-31 19:40:01,981 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:40:02,177 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:40:02,178 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:40:02,178 - INFO - Scheduler started
+2026-05-31 19:40:02,178 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:41:31,295 - INFO - Scheduler has been shut down
+2026-05-31 19:41:32,810 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:41:32,968 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 19:41:32,968 - WARNING - ⚠️ 发号器校准跳过 (通常发生在表还未完全建立时): name 'text' is not defined
+2026-05-31 19:41:32,994 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:41:32,994 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:41:32,994 - INFO - Scheduler started
+2026-05-31 19:41:32,994 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:41:40,083 - INFO - Scheduler has been shut down
+2026-05-31 19:41:41,310 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:41:41,409 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 19:41:41,481 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 19:41:41,500 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:41:41,500 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:41:41,500 - INFO - Scheduler started
+2026-05-31 19:41:41,500 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:45:09,906 - INFO - Scheduler has been shut down
+2026-05-31 19:45:11,380 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:45:11,580 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 19:45:11,599 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 19:45:11,619 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:45:11,620 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:45:11,620 - INFO - Scheduler started
+2026-05-31 19:45:11,620 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:46:03,548 - INFO - Scheduler has been shut down
+2026-05-31 19:46:15,184 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:46:15,296 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 19:46:15,313 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 19:46:15,329 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:46:15,330 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:46:15,330 - INFO - Scheduler started
+2026-05-31 19:46:15,330 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:50:33,799 - INFO - Scheduler has been shut down
+2026-05-31 19:50:34,982 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:50:35,067 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 19:50:35,079 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 19:50:35,095 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:50:35,095 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:50:35,095 - INFO - Scheduler started
+2026-05-31 19:50:35,096 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 19:50:45,008 - INFO - Scheduler has been shut down
+2026-05-31 19:50:46,031 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 19:50:46,105 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 19:50:46,123 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 19:50:46,137 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 19:50:46,138 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 19:50:46,138 - INFO - Scheduler started
+2026-05-31 19:50:46,138 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 20:02:30,585 - INFO - Scheduler has been shut down
+2026-05-31 20:02:31,904 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 20:02:32,022 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 20:02:32,040 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 20:02:32,056 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 20:02:32,057 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 20:02:32,057 - INFO - Scheduler started
+2026-05-31 20:02:32,057 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 20:10:36,114 - INFO - Scheduler has been shut down
+2026-05-31 20:13:58,238 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 20:13:58,316 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 20:13:58,341 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 20:13:58,355 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 20:13:58,355 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 20:13:58,355 - INFO - Scheduler started
+2026-05-31 20:13:58,355 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 20:33:42,734 - WARNING - ⚠️ Business Error at /api/v1/pos-terminal/login: 400 - Incorrect username or password
+2026-05-31 20:33:52,647 - WARNING - ⚠️ Business Error at /api/v1/pos-terminal/login: 403 - Login failed: This device is not assigned to your account.
+2026-05-31 20:35:13,338 - INFO - Scheduler has been shut down
+2026-05-31 20:35:18,712 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 20:35:19,342 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 20:35:19,449 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 20:35:19,507 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 20:35:19,508 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 20:35:19,508 - INFO - Scheduler started
+2026-05-31 20:35:19,513 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 20:37:09,994 - INFO - Scheduler has been shut down
+2026-05-31 20:37:12,172 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 20:37:12,546 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 20:37:12,584 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 20:37:12,612 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 20:37:12,613 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 20:37:12,613 - INFO - Scheduler started
+2026-05-31 20:37:12,613 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 20:49:23,749 - ERROR - System Error: /api/v1/pos-sync/bootstrap - 11 validation errors:
+  {'type': 'missing', 'loc': ('response', 'customers', 0, 'created_at'), 'msg': 'Field required', 'input': {'id': 483, 'uuid': '30188197', 'first_name': 'Noriel M.', 'last_name': 'Natano', 'card_uuid': '235E3FAE', 'shs_machine_id': '56349', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 6, 8, 21, 4), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 1, 'created_at'), 'msg': 'Field required', 'input': {'id': 484, 'uuid': '30188248', 'first_name': 'Deniel M.', 'last_name': 'Natano', 'card_uuid': 'C31D57AE', 'shs_machine_id': '56354', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 8, 8, 50, 23), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 2, 'created_at'), 'msg': 'Field required', 'input': {'id': 485, 'uuid': '30188249', 'first_name': 'Elmer A.', 'last_name': 'Pabericio', 'card_uuid': '13A965AE', 'shs_machine_id': '56359', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 6, 9, 25, 21), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 3, 'created_at'), 'msg': 'Field required', 'input': {'id': 486, 'uuid': '30188250', 'first_name': 'Tarcila D.', 'last_name': 'Collantes', 'card_uuid': '333E43AE', 'shs_machine_id': '56364', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 8, 7, 9, 55, 23), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 4, 'created_at'), 'msg': 'Field required', 'input': {'id': 487, 'uuid': '30188251', 'first_name': 'Joshua M.', 'last_name': 'Natano', 'card_uuid': 'D31573AE', 'shs_machine_id': '56369', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 3, 10, 2, 39), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 5, 'created_at'), 'msg': 'Field required', 'input': {'id': 488, 'uuid': '30188252', 'first_name': 'Arlo S.', 'last_name': 'Rafa', 'card_uuid': '23D74BAE', 'shs_machine_id': '56374', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 6, 21, 10, 21, 25), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 6, 'created_at'), 'msg': 'Field required', 'input': {'id': 489, 'uuid': '30188258', 'first_name': 'Vito B.', 'last_name': 'Rafa', 'card_uuid': '531B74AE', 'shs_machine_id': '56379', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 8, 5, 10, 16, 49), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 7, 'created_at'), 'msg': 'Field required', 'input': {'id': 490, 'uuid': '30188260', 'first_name': 'Cecilie V.', 'last_name': 'Dela Pena', 'card_uuid': '03E437AE', 'shs_machine_id': '56384', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 8, 10, 30, 43), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 8, 'created_at'), 'msg': 'Field required', 'input': {'id': 491, 'uuid': '30188261', 'first_name': 'Carlos', 'last_name': 'Ortega', 'card_uuid': '43813FAE', 'shs_machine_id': '56389', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 11, 4, 10, 42, 32), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 9, 'created_at'), 'msg': 'Field required', 'input': {'id': 492, 'uuid': '30188262', 'first_name': 'Asisclon M.', 'last_name': 'Natano', 'card_uuid': '933F5BAE', 'shs_machine_id': '56394', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 8, 10, 42, 52), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 10, 'created_at'), 'msg': 'Field required', 'input': {'id': 493, 'uuid': '30188266', 'first_name': 'Rosalinda D.', 'last_name': 'Cambe', 'card_uuid': '133831AE', 'shs_machine_id': '56399', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 6, 8, 10, 49, 59), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/pos_sync.py", line 139, in pos_bootstrap_sync
+    GET /api/v1/pos-sync/bootstrap
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 138, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 88, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 11 validation errors:
+  {'type': 'missing', 'loc': ('response', 'customers', 0, 'created_at'), 'msg': 'Field required', 'input': {'id': 483, 'uuid': '30188197', 'first_name': 'Noriel M.', 'last_name': 'Natano', 'card_uuid': '235E3FAE', 'shs_machine_id': '56349', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 6, 8, 21, 4), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 1, 'created_at'), 'msg': 'Field required', 'input': {'id': 484, 'uuid': '30188248', 'first_name': 'Deniel M.', 'last_name': 'Natano', 'card_uuid': 'C31D57AE', 'shs_machine_id': '56354', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 8, 8, 50, 23), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 2, 'created_at'), 'msg': 'Field required', 'input': {'id': 485, 'uuid': '30188249', 'first_name': 'Elmer A.', 'last_name': 'Pabericio', 'card_uuid': '13A965AE', 'shs_machine_id': '56359', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 6, 9, 25, 21), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 3, 'created_at'), 'msg': 'Field required', 'input': {'id': 486, 'uuid': '30188250', 'first_name': 'Tarcila D.', 'last_name': 'Collantes', 'card_uuid': '333E43AE', 'shs_machine_id': '56364', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 8, 7, 9, 55, 23), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 4, 'created_at'), 'msg': 'Field required', 'input': {'id': 487, 'uuid': '30188251', 'first_name': 'Joshua M.', 'last_name': 'Natano', 'card_uuid': 'D31573AE', 'shs_machine_id': '56369', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 3, 10, 2, 39), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 5, 'created_at'), 'msg': 'Field required', 'input': {'id': 488, 'uuid': '30188252', 'first_name': 'Arlo S.', 'last_name': 'Rafa', 'card_uuid': '23D74BAE', 'shs_machine_id': '56374', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 6, 21, 10, 21, 25), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 6, 'created_at'), 'msg': 'Field required', 'input': {'id': 489, 'uuid': '30188258', 'first_name': 'Vito B.', 'last_name': 'Rafa', 'card_uuid': '531B74AE', 'shs_machine_id': '56379', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 8, 5, 10, 16, 49), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 7, 'created_at'), 'msg': 'Field required', 'input': {'id': 490, 'uuid': '30188260', 'first_name': 'Cecilie V.', 'last_name': 'Dela Pena', 'card_uuid': '03E437AE', 'shs_machine_id': '56384', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 8, 10, 30, 43), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 8, 'created_at'), 'msg': 'Field required', 'input': {'id': 491, 'uuid': '30188261', 'first_name': 'Carlos', 'last_name': 'Ortega', 'card_uuid': '43813FAE', 'shs_machine_id': '56389', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 11, 4, 10, 42, 32), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 9, 'created_at'), 'msg': 'Field required', 'input': {'id': 492, 'uuid': '30188262', 'first_name': 'Asisclon M.', 'last_name': 'Natano', 'card_uuid': '933F5BAE', 'shs_machine_id': '56394', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 7, 8, 10, 42, 52), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+  {'type': 'missing', 'loc': ('response', 'customers', 10, 'created_at'), 'msg': 'Field required', 'input': {'id': 493, 'uuid': '30188266', 'first_name': 'Rosalinda D.', 'last_name': 'Cambe', 'card_uuid': '133831AE', 'shs_machine_id': '56399', 'status': 1, 'total_recharged_days': 0.0, 'expiry_time': datetime.datetime(2026, 6, 8, 10, 49, 59), 'region_name': 'Del Gallego', 'updated_at': datetime.datetime(2026, 5, 31, 12, 11, 47, 491774)}}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/pos_sync.py", line 139, in pos_bootstrap_sync
+    GET /api/v1/pos-sync/bootstrap
+2026-05-31 20:52:58,947 - INFO - Scheduler has been shut down
+2026-05-31 20:53:00,346 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 20:53:00,616 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 20:53:00,652 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 20:53:00,667 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 20:53:00,667 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 20:53:00,667 - INFO - Scheduler started
+2026-05-31 20:53:00,668 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:20:24,093 - INFO - Scheduler has been shut down
+2026-05-31 21:20:27,359 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:20:27,771 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:20:27,851 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:20:27,877 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:20:27,878 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:20:27,878 - INFO - Scheduler started
+2026-05-31 21:20:27,878 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:21:00,517 - INFO - Scheduler has been shut down
+2026-05-31 21:21:37,928 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:21:38,015 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:21:38,033 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:21:38,047 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:21:38,048 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:21:38,048 - INFO - Scheduler started
+2026-05-31 21:21:38,048 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:23:47,830 - INFO - Scheduler has been shut down
+2026-05-31 21:23:50,209 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:23:50,634 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:23:50,690 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:23:50,719 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:23:50,719 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:23:50,719 - INFO - Scheduler started
+2026-05-31 21:23:50,720 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:25:20,447 - INFO - Scheduler has been shut down
+2026-05-31 21:25:37,883 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:25:37,982 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:25:38,020 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:25:38,050 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:25:38,051 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:25:38,051 - INFO - Scheduler started
+2026-05-31 21:25:38,051 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:25:52,385 - ERROR - System Error: /api/v1/card/ - 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 138, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+2026-05-31 21:26:15,522 - ERROR - System Error: /api/v1/card/ - 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 138, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+2026-05-31 21:26:15,563 - ERROR - System Error: /api/v1/card/ - 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 138, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+2026-05-31 21:26:15,615 - ERROR - System Error: /api/v1/card/ - 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+Traceback (most recent call last):
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 191, in __call__
+    with recv_stream, send_stream, collapse_excgroups():
+                                   ^^^^^^^^^^^^^^^^^^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 158, in __exit__
+    self.gen.throw(value)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_utils.py", line 87, in collapse_excgroups
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 193, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/app/main.py", line 138, in add_private_network_access_header
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 168, in call_next
+    raise app_exc from app_exc.__cause__ or app_exc.__context__
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/base.py", line 144, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 96, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 154, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 660, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 680, in app
+    await route.handle(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/routing.py", line 276, in handle
+    await self.app(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 134, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 120, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 695, in app
+    content = await serialize_response(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/michael/dev/shs/shs-back/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 300, in serialize_response
+    raise ResponseValidationError(
+fastapi.exceptions.ResponseValidationError: 20 validation errors:
+  {'type': 'string_type', 'loc': ('response', 'items', 0, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 1, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 2, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 3, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 4, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 5, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 6, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 7, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 8, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 9, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 10, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 11, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 12, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 13, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 14, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 15, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 16, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 17, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 18, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+  {'type': 'string_type', 'loc': ('response', 'items', 19, 'card_number'), 'msg': 'Input should be a valid string', 'input': None}
+
+  File "/Users/michael/dev/shs/shs-back/app/api/v1/endpoints/card.py", line 19, in get_cards
+    GET /api/v1/card/
+2026-05-31 21:27:46,355 - INFO - Scheduler has been shut down
+2026-05-31 21:27:48,806 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:27:49,229 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:27:49,272 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:27:49,310 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:27:49,311 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:27:49,311 - INFO - Scheduler started
+2026-05-31 21:27:49,311 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:27:57,213 - INFO - Scheduler has been shut down
+2026-05-31 21:27:58,442 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:27:58,527 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:27:58,547 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:27:58,565 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:27:58,566 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:27:58,566 - INFO - Scheduler started
+2026-05-31 21:27:58,566 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:28:29,931 - INFO - Scheduler has been shut down
+2026-05-31 21:28:31,162 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:28:31,283 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:28:31,306 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:28:31,323 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:28:31,323 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:28:31,324 - INFO - Scheduler started
+2026-05-31 21:28:31,324 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:28:33,944 - INFO - Scheduler has been shut down
+2026-05-31 21:28:36,267 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:28:36,377 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:28:36,408 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:28:36,425 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:28:36,425 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:28:36,425 - INFO - Scheduler started
+2026-05-31 21:28:36,425 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:28:42,018 - INFO - Scheduler has been shut down
+2026-05-31 21:28:44,795 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:28:45,093 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:28:45,121 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:28:45,142 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:28:45,142 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:28:45,142 - INFO - Scheduler started
+2026-05-31 21:28:45,142 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:56:40,377 - INFO - Scheduler has been shut down
+2026-05-31 21:56:42,221 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:56:42,688 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:56:42,747 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:56:42,764 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:56:42,764 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:56:42,764 - INFO - Scheduler started
+2026-05-31 21:56:42,765 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:56:49,252 - INFO - Scheduler has been shut down
+2026-05-31 21:56:50,490 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:56:50,575 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:56:50,590 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:56:50,605 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:56:50,605 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:56:50,605 - INFO - Scheduler started
+2026-05-31 21:56:50,606 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 21:57:05,352 - INFO - Scheduler has been shut down
+2026-05-31 21:57:06,460 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 21:57:06,549 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 21:57:06,570 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 21:57:06,585 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 21:57:06,585 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 21:57:06,585 - INFO - Scheduler started
+2026-05-31 21:57:06,585 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-05-31 22:07:46,306 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect username or email
+2026-05-31 22:09:48,028 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect username or email
+2026-05-31 22:10:01,239 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-05-31 22:10:11,325 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-05-31 22:11:00,546 - WARNING - ⚠️ Business Error at /api/v1/user/: 400 - Username already registered
+2026-05-31 22:11:05,584 - WARNING - ⚠️ Business Error at /api/v1/user/: 400 - Email already registered
+2026-05-31 22:12:45,725 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-05-31 22:12:52,569 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-05-31 22:13:01,907 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-05-31 22:13:31,525 - INFO - Scheduler has been shut down
+2026-05-31 23:43:13,683 - INFO - --- 正在检查并创建表结构 ---
+2026-05-31 23:43:14,232 - INFO - --- 正在自动校准数据库发号器 ---
+2026-05-31 23:43:14,404 - INFO - ✅ 数据库发号器校准完成
+2026-05-31 23:43:14,441 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-05-31 23:43:14,441 - INFO - Added job "perform_db_backup" to job store "default"
+2026-05-31 23:43:14,441 - INFO - Scheduler started
+2026-05-31 23:43:14,442 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime
 
 class UserBase(BaseModel):
@@ -14,8 +14,21 @@ class UserBase(BaseModel):
     
     # --- 地理信息 ---
     province: Optional[str] = "Pangasinan"
-    region_id: Optional[int] = None  # 所属区域 ID
+    region_id: Optional[int] = None  # 设为可选，我们将通过 validator 智能填充
     address: Optional[str] = None
+
+    @field_validator('region_id', mode='before')
+    @classmethod
+    def set_default_region(cls, v, info: Any):
+        # 获取当前请求中的 role 值
+        role = info.data.get('role', 2) # 默认为 2
+        # 如果是 Admin(1) 或 Finance(3)，且 region_id 为空，默认设为 1 (总部)
+        if role in [0, 1, 3] and v is None:
+            return 1
+        # 如果是业务员且没传 region_id，抛出错误
+        if role == 2 and v is None:
+            raise ValueError("Region ID is required for Operator roles.")
+        return v
 
 class UserCreate(UserBase):
     password: str = Field(..., max_length=100) # 移除了密码最短 8 位的限制

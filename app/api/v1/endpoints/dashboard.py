@@ -59,10 +59,21 @@ def get_dashboard_stats(
     cust_last_month = db.query(Customer).filter(Customer.created_at >= first_day_last_month, Customer.created_at <= last_month_end).count()
     cust_growth = round(((cust_this_month - cust_last_month) / cust_last_month * 100), 1) if cust_last_month > 0 else (100.0 if cust_this_month > 0 else 0)
 
-    # 设备激活环比
-    dev_this_month = db.query(SolarUnit).filter(SolarUnit.shs_status == 1, SolarUnit.bound_at >= first_day_this_month).count()
-    dev_last_month = db.query(SolarUnit).filter(SolarUnit.shs_status == 1, SolarUnit.bound_at >= first_day_last_month, SolarUnit.bound_at <= last_month_end).count()
-    dev_growth = round(((dev_this_month - dev_last_month) / dev_last_month * 100), 1) if dev_last_month > 0 else (100.0 if dev_this_month > 0 else 0)
+    # 充值次数环比 (Loads)
+    loads_this_month = db.query(TransactionLog).filter(
+        TransactionLog.transaction_time >= first_day_this_month,
+        TransactionLog.action_type == 'RECHARGE'
+    ).count()
+    loads_last_month = db.query(TransactionLog).filter(
+        TransactionLog.transaction_time >= first_day_last_month,
+        TransactionLog.transaction_time <= last_month_end,
+        TransactionLog.action_type == 'RECHARGE'
+    ).count()
+    loads_growth = round(((loads_this_month - loads_last_month) / loads_last_month * 100), 1) if loads_last_month > 0 else (100.0 if loads_this_month > 0 else 0)
+    today_load_count = db.query(TransactionLog).filter(
+        TransactionLog.transaction_time >= today_start,
+        TransactionLog.action_type == 'RECHARGE'
+    ).count()
 
     # 3. 每日趋势 (最近 7 天)
     daily_stats = []
@@ -98,9 +109,9 @@ def get_dashboard_stats(
             "trend": daily_stats,
             "region_ranking": region_ranking
         },
-        "devices": {
-            "total": active_devices_count,
-            "growth": dev_growth,
+        "loads": {
+            "total": today_load_count,
+            "growth": loads_growth,
             "distribution": [
                 {"name": "Active", "value": active_devices_count},
                 {"name": "In Stock", "value": in_stock_devices},

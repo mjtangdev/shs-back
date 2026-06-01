@@ -1,6 +1,7 @@
 from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime
 
 from app.api import deps
@@ -33,18 +34,17 @@ def pos_terminal_login(
     2. 验证 POS SN 码是否存在且未锁定 (临时放行模式)
     3. 强绑定校验：Operator (Role 2) 只能在分配给自己的 POS 上登录
     """
-    # --- 1. 验证 POS 机器状态 ---
+    # --- 1. 验证 POS 机器状态 (严格注册检查模式) ---
     sn = format_pos_sn(req.pos_sn)
     pos = db.query(POSMachine).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
     
-    # [BYPASS MODE] 临时放行未注册或已锁定的 SN 码，方便测试
-    # --- 老的 SN 检测逻辑 (已注释) ---
-    # if not pos:
-    #     raise HTTPException(status_code=404, detail="POS Device not registered")
-    # if pos.lock_status != 0:
-    #     lock_msg = "Admin Locked" if pos.lock_status == 1 else "Finance Locked"
-    #     raise HTTPException(status_code=403, detail=f"Device is locked ({lock_msg})")
-    # ----------------------------
+    # 强制检查 SN 是否已由管理员手动录入
+    if not pos:
+        raise HTTPException(status_code=404, detail=f"POS Device ({sn}) not registered. Please contact admin.")
+    
+    if pos and pos.lock_status != 0:
+        lock_msg = "Admin Locked" if pos.lock_status == 1 else "Finance Locked"
+        raise HTTPException(status_code=403, detail=f"Device is locked ({lock_msg})")
 
     # --- 2. 查找并验证用户 ---
     user = db.query(User).filter(User.username == req.username, User.is_deleted == False).first()
@@ -54,15 +54,14 @@ def pos_terminal_login(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="User account is disabled")
 
-    # --- 3. 强绑定权限校验 (仅在机器已注册时校验) ---
-    # Role 0: SuperAdmin, 1: Admin, 3: Finance, 4: Management 可以登录任何机器
-    if pos and user.role not in [0, 1, 3, 4]:
-        # Role 2: Operator (业务员) 必须检查绑定关系
-        if pos.assigned_user_id != user.id:
-            raise HTTPException(
-                status_code=403, 
-                detail="Login failed: This device is not assigned to your account."
-            )
+    # --- 3. 强绑定权限校验 (演示模式：放行所有登录) ---
+    # 注释掉强制绑定检查，让任何账号都能在任何机器上登录
+    # if pos and user.role not in [0, 1, 3, 4]:
+    #     if pos.assigned_user_id != user.id:
+    #         raise HTTPException(
+    #             status_code=403, 
+    #             detail="Login failed: This device is not assigned to your account."
+    #         )
 
     # --- 4. 初始化状态检查 (保持与 login.py 一致) ---
     is_default_password = req.password == "admin123"
@@ -152,34 +151,42 @@ def pos_terminal_login(
         "region_name": region_name,
         "hierarchy": hierarchy,
         "provider": provider_info,
-        "pos_sn": sn
+        "pos_sn": sn,
+        "pos_code": pos.pos_code if pos else "01" # 返回分配给该 POS 的号段前缀
     }
 
 @router.get("/check/{pos_sn}")
-@limiter.limit("5/minute")
+@limiter.limit("30/minute")
 def check_pos_status(request: Request, pos_sn: str, db: Session = Depends(deps.get_db)):
     """
-    POS 终端静默状态检查接口
-    [BYPASS MODE] 临时改为永远返回 exists=True，无论该 SN 是否在库
+    POS 终端静默状态检查接口 (增强版)：
+    用于 POS 终端在业务前或后台轮询锁定状态及同步服务器时间。
     """
     sn = format_pos_sn(pos_sn)
-    pos = db.query(POSMachine).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
+    pos = db.query(POSMachine).options(joinedload(POSMachine.assigned_user)).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
 
-    # --- 老的 SN 检测逻辑 (已注释) ---
-    # if not pos:
-    #     return {"exists": False, "message": "Device not registered"}
-    # ----------------------------
+    if not pos:
+        return {
+            "exists": False,
+            "pos_sn": sn,
+            "message": "Device not registered"
+        }
 
-    # 自动对账锁定逻辑 (仅对已存在的机器有效)
-    if pos and pos.reconciliation_deadline and datetime.now() > pos.reconciliation_deadline:
-        if pos.lock_status == 0:
-            pos.lock_status = 2 
-            db.commit()
+    # 自动对账锁定逻辑
+    if pos.lock_status == 0 and pos.reconciliation_deadline and datetime.now() > pos.reconciliation_deadline:
+        pos.lock_status = 2 
+        pos.last_lock_reason = "System: Reconciliation deadline expired"
+        pos.last_action_by = "SYSTEM"
+        db.commit()
 
     return {
-        "exists": True, # 临时强制放行
+        "exists": True,
         "pos_sn": sn,
-        "lock_status": pos.lock_status if pos else 0,
-        "reconciliation_deadline": pos.reconciliation_deadline if pos else None,
-        "assigned_user_name": pos.assigned_user.username if (pos and pos.assigned_user) else None,
+        "status": pos.status,
+        "lock_status": pos.lock_status,
+        "lock_reason": pos.last_lock_reason or "Normal",
+        "last_action_by": pos.last_action_by or "System",
+        "reconciliation_deadline": pos.reconciliation_deadline.strftime("%Y-%m-%d %H:%M:%S") if pos.reconciliation_deadline else None,
+        "assigned_user_name": f"{pos.assigned_user.first_name} {pos.assigned_user.last_name}" if pos.assigned_user else "Unassigned",
+        "server_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }

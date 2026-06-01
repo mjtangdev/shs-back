@@ -7,8 +7,8 @@ class Card(Base):
     __tablename__ = "cards"
 
     id = Column(Integer, primary_key=True, index=True)
-    # 物理唯一识别码
-    card_number = Column(String(100), unique=True, index=True, nullable=False)
+    # 物理唯一识别码 (为了数据迁移，暂时允许为空)
+    card_number = Column(String(100), unique=True, index=True, nullable=True)
     card_uuid = Column(String(100), unique=True, index=True, nullable=False)
     
     # 核心状态机：

@@ -14,7 +14,7 @@ class TransactionLog(Base):
     transaction_id = Column(String(100), unique=True, index=True, nullable=False)
     
     customer_uuid = Column(String(100), index=True, nullable=False)
-    card_uuid = Column(String(100), index=True, nullable=False)
+    card_uuid = Column(String(100), index=True, nullable=True)
     shs_machine_id = Column(String(100), nullable=True, comment="交易关联的设备ID")
     days = Column(Numeric(10, 2), nullable=False, default=0)
     amount = Column(Numeric(10, 2), nullable=False)

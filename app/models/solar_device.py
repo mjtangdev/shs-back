@@ -39,7 +39,7 @@ class SolarUnit(Base):
     town = Column(String(100), index=True, nullable=True)
 
     # 时间线
-    production_date = Column(DateTime, nullable=False)
+    production_date = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.now)
     bound_at = Column(DateTime, nullable=True)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

@@ -8,7 +8,7 @@ class TransactionResponse(BaseModel):
     transaction_id: str
     customer_uuid: str
     customer_name: Optional[str] = "-"
-    card_uuid: str
+    card_uuid: Optional[str] = "-"
     days: Decimal
     amount: Decimal
     transaction_time: datetime

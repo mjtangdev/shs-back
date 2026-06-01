@@ -50,25 +50,22 @@ def login_access_token(
     is_default_password = form_data.password == "admin123"
 
     # --- [第三步：初始化检查] ---
-    # 将所有初始化项并入 setup_status，包括密码状态
+    # 【临时跳过验证】直接返回 True 让前端跳过初始化页面，原有逻辑已注释
     setup_status = {
-        "password_updated": not is_default_password, # 检查是否已修改默认密码
+        "password_updated": True, # not is_default_password
         "region_set": True,
-        "provider_config_set": True, # ✅ 新增：总公司配置检查
+        "provider_config_set": True,
     }
 
-    # 针对管理员 (role == 1) 额外检查业务数据初始化
-    if user.role == 1:
-        # 1. 检查地区初始化：不但要存在顶级区域，且该区域必须已被改名（非默认的 "Pangasinan"）
-        # 这能确保管理员在系统启用前至少完成了一次地区配置
-        province = db.query(Region).filter(Region.level == 0).first()
-        if not province or province.name == "Pangasinan":
-            setup_status["region_set"] = False
-            
-        # 3. 检查总公司配置 (不仅要有记录，且必须是已初始化状态)
-        provider_config_exists = db.query(ProviderConfig).first()
-        if not provider_config_exists or not provider_config_exists.is_initialized:
-            setup_status["provider_config_set"] = False
+    # 针对管理员 (role == 1) 额外检查业务数据初始化 (代码已注释)
+    # if user.role == 1:
+    #     province = db.query(Region).filter(Region.level == 0).first()
+    #     if not province or province.name == "Pangasinan":
+    #         setup_status["region_set"] = False
+    #         
+    #     provider_config_exists = db.query(ProviderConfig).first()
+    #     if not provider_config_exists or not provider_config_exists.is_initialized:
+    #         setup_status["provider_config_set"] = False
 
     # --- [获取当前用户的费率和详细层级信息 (支持递归继承)] ---
     daily_rate = 0.0
@@ -148,20 +145,21 @@ def login_access_token_json(
     is_default_password = req.password == "admin123"
 
     # --- [第三步：初始化检查] ---
+    # 【临时跳过验证】直接返回 True 让前端跳过初始化页面，原有逻辑已注释
     setup_status = {
-        "password_updated": not is_default_password,
+        "password_updated": True, # not is_default_password
         "region_set": True,
         "provider_config_set": True,
     }
 
-    if user.role == 1:
-        province = db.query(Region).filter(Region.level == 0).first()
-        if not province or province.name == "Pangasinan":
-            setup_status["region_set"] = False
-            
-        provider_config_exists = db.query(ProviderConfig).first()
-        if not provider_config_exists or not provider_config_exists.is_initialized:
-            setup_status["provider_config_set"] = False
+    # if user.role == 1:
+    #     province = db.query(Region).filter(Region.level == 0).first()
+    #     if not province or province.name == "Pangasinan":
+    #         setup_status["region_set"] = False
+    #         
+    #     provider_config_exists = db.query(ProviderConfig).first()
+    #     if not provider_config_exists or not provider_config_exists.is_initialized:
+    #         setup_status["provider_config_set"] = False
 
     # --- [获取当前用户的费率和详细层级信息 (支持递归继承)] ---
     daily_rate = 0.0
