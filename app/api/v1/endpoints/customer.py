@@ -25,12 +25,27 @@ gen = SnowflakeGenerator(1)
 def get_snowflake_id():
     return str(next(gen))
 
-def generate_customer_uuid(db: Session):
-    """生成 8 位 Web 前缀客户 ID (01xxxxxx)"""
-    max_id = db.query(func.max(Customer.uuid)).filter(Customer.uuid.like('01%')).scalar()
-    if not max_id: return "01000001"
-    next_num = int(max_id[2:]) + 1
-    return f"01{next_num:06d}"
+def generate_customer_uuid(db: Session, region_id: int):
+    """
+    基于地区生成的 8 位客户 ID：RegionPrefix (2位) + 序列 (6位)
+    例如：Region 3 -> 03000001
+    """
+    prefix = f"{region_id:02d}"
+    # 查找该地区当前最大的业务编号
+    max_id = db.query(func.max(Customer.uuid)).filter(Customer.uuid.like(f'{prefix}%')).scalar()
+    
+    if not max_id:
+        return f"{prefix}000001"
+    
+    try:
+        # 截取前缀后的数字部分并自增
+        current_num_str = max_id[len(prefix):]
+        next_num = int(current_num_str) + 1
+        return f"{prefix}{next_num:06d}"
+    except Exception as e:
+        # 异常兜底：使用时间戳后缀保证唯一性
+        logger.warning(f"ID generation fallback for region {region_id}: {e}")
+        return f"{prefix}{datetime.now().strftime('%H%M%S')}"
 
 # --- 1. 获取列表 ---
 @router.get("/")
@@ -56,6 +71,7 @@ def get_customers(
         if is_bound: query = query.filter(Customer.solar_units.any())
         else: query = query.filter(~Customer.solar_units.any())
 
+    # 权限过滤逻辑
     filter_region_id = current_user.region_id if current_user.role == 2 else region_id
     if filter_region_id is not None:
         allowed_ids = [filter_region_id]
@@ -87,7 +103,7 @@ def get_customers(
         })
     return {"total": total, "items": result}
 
-# --- 2. 手动创建 (Opera 角色已开放) ---
+# --- 2. 手动创建 ---
 @router.post("/create")
 def create_customer(
     customer_in: CustomerCreate,
@@ -98,23 +114,25 @@ def create_customer(
     if existing: raise HTTPException(status_code=400, detail="Mobile already exists")
 
     user_data = customer_in.dict()
-    # 业务员只能创建自己辖区的客户
-    if current_user.role == 2:
-        user_data["region_id"] = current_user.region_id
-    
+    # 确定归属地区：业务员强制用本人的，管理员用表单里的
+    target_region_id = current_user.region_id if current_user.role == 2 else customer_in.region_id
+    if not target_region_id:
+        raise HTTPException(status_code=400, detail="Region ID is required")
+        
+    user_data["region_id"] = target_region_id
     if user_data.get("gender"): user_data["gender"] = user_data["gender"].lower()
     
     provider = db.query(ProviderConfig).first()
     new_obj = Customer(
         **user_data,
-        uuid=generate_customer_uuid(db),
+        uuid=generate_customer_uuid(db, target_region_id), # 👈 传入 region_id 生成业务 ID
         electric_company=provider.name if provider else "SHS",
         created_at=datetime.now()
     )
     db.add(new_obj); db.commit(); db.refresh(new_obj)
     return {"status": "success", "id": new_obj.id, "uuid": new_obj.uuid}
 
-# --- 3. 编辑客户 (Opera 角色已开放) ---
+# --- 3. 编辑客户 ---
 @router.put("/{customer_id}")
 def update_customer(
     customer_id: int,
@@ -125,7 +143,6 @@ def update_customer(
     customer = db.query(Customer).filter(Customer.id == customer_id).first()
     if not customer: raise HTTPException(status_code=404, detail="Customer not found")
 
-    # 业务隔离：Opera 不能跨区编辑
     if current_user.role == 2 and customer.region_id != current_user.region_id:
          raise HTTPException(status_code=403, detail="Permission denied: Cannot edit customers outside your region")
 
@@ -143,10 +160,11 @@ def update_customer(
 # --- 4. 导出 Excel ---
 @router.get("/export")
 def export_customers(
-    region_id: Optional[int] = Query(None),
     db: Session = Depends(deps.get_db),
+    region_id: Optional[int] = Query(None),
     current_user: Any = Depends(deps.get_finance_or_admin)
 ):
+    # 此处依赖 get_finance_or_admin，确保已从 deps 导入
     query = db.query(Customer).options(selectinload(Customer.solar_units), selectinload(Customer.cards))
     customers = query.all()
     df = pd.DataFrame([{"ID": c.uuid, "Name": f"{c.first_name} {c.last_name}", "Mobile": c.mobile} for c in customers])
@@ -154,39 +172,3 @@ def export_customers(
     with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False)
     output.seek(0)
     return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-
-# --- 5. 批量导入 ---
-@router.post("/import")
-async def import_customers(
-    file: UploadFile = File(...),
-    region_id: int = Query(...),
-    db: Session = Depends(deps.get_db),
-    current_user: Any = Depends(deps.get_current_user)
-):
-    target_region_id = current_user.region_id if current_user.role == 2 else region_id
-    contents = await file.read()
-    df = pd.read_excel(io.BytesIO(contents), dtype=str)
-    df = df.where(pd.notnull(df), None)
-    df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
-    
-    provider = db.query(ProviderConfig).first()
-    success_count = 0
-    for _, row in df.iterrows():
-        try:
-            mobile = str(row.get("mobile", "")).strip()
-            if not mobile or db.query(Customer).filter(Customer.mobile == mobile).first(): continue
-            new_cust = Customer(
-                first_name=str(row.get("first_name", "")).strip(),
-                last_name=str(row.get("last_name", "")).strip(),
-                mobile=mobile, email=row.get("email"),
-                gender=str(row.get("gender", "male")).lower(),
-                address=row.get("address"),
-                region_id=target_region_id,
-                electric_company=provider.name if provider else "SHS",
-                uuid=generate_customer_uuid(db),
-                created_at=datetime.now()
-            )
-            db.add(new_cust); success_count += 1
-        except: continue
-    db.commit()
-    return {"status": "success", "imported": success_count}

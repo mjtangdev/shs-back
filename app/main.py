@@ -1,6 +1,8 @@
 import os
 import logging
-import time
+import json
+from datetime import datetime
+from typing import Any
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -9,10 +11,26 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from sqlalchemy import text
 
-# 导入业务模型
+# 1. 导入业务模型
 from app.db.base_class import Base
 from app.db.session import engine, SessionLocal
 from app.api.v1.api import api_router
+
+# --- [ 核心增强 ] 全局统一日期序列化器 (去除 T) ---
+class NonTJSONResponse(JSONResponse):
+    """
+    自定义响应类：将所有 datetime 对象统一格式化为 yyyy-MM-dd HH:mm:ss
+    不再输出 ISO 格式中的 'T'。
+    """
+    def render(self, content: Any) -> bytes:
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=None,
+            separators=(",", ":"),
+            default=lambda obj: obj.strftime("%Y-%m-%d %H:%M:%S") if isinstance(obj, datetime) else str(obj),
+        ).encode("utf-8")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,14 +51,14 @@ async def lifespan(app: FastAPI):
         tables = ["users", "customers", "cards", "solar_units", "transaction_logs", "regions", "pos_machines"]
         for table in tables:
             try:
+                max_id = db.execute(text(f"SELECT MAX(id) FROM {table}")).scalar() or 1
                 seq = db.execute(text(f"SELECT pg_get_serial_sequence('{table}', 'id')")).scalar()
                 if seq:
-                    db.execute(text(f"SELECT setval('{seq}', COALESCE((SELECT MAX(id) FROM {table}), 1), (SELECT MAX(id) FROM {table}) IS NOT NULL)"))
-            except Exception as e:
-                logger.warning(f"⚠️ {table} sequence sync skipped: {e}")
+                    db.execute(text(f"SELECT setval('{seq}', {max_id}, true)"))
+            except: pass
         db.commit()
         db.close()
-        logger.info("✅ Database ready.")
+        logger.info("✅ Database ready and sequences synced.")
     except Exception as e:
         logger.error(f"❌ Startup error: {e}")
 
@@ -53,19 +71,16 @@ async def lifespan(app: FastAPI):
     yield
     scheduler.shutdown()
 
-app = FastAPI(title="SHS API", version="1.0.0", lifespan=lifespan)
+# 💡 应用自定义响应类
+app = FastAPI(
+    title="SHS API", 
+    version="1.0.0", 
+    lifespan=lifespan,
+    default_response_class=NonTJSONResponse
+)
 
-# --- 核心 CORS 配置：只使用这一套标准做法 ---
-origins = [
-    "https://shstest.site",
-    "https://api.shstest.site",
-    "http://shstest.site",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173"
-]
-
+# CORS 配置
+origins = ["*"] # 调试阶段放开
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -85,4 +100,4 @@ app.mount("/static", StaticFiles(directory=LOGO_PHYSICAL_DIR), name="static")
 app.include_router(api_router, prefix="/api/v1")
 
 @app.get("/")
-async def root(): return {"status": "running"}
+async def root(): return {"status": "running", "time": datetime.now()}

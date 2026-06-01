@@ -67,49 +67,61 @@ def upload_offline_data(
     current_user: User = Depends(deps.get_current_user)
 ):
     """
-    POS 离线同步接口 (同步实时处理版)：
-    确保 upload 成功返回后，数据已进入正式表，后续 bootstrap 可立即拉取最新状态。
+    POS 离线同步接口 (冲突自愈版)：
+    如果发现上传的客户 ID 已存在，服务器会强制分配新 ID 并同步修正关联的卡片、设备和流水。
     """
-    print(f"📥 Received sync from POS: {payload.pos_sn}")
+    print(f"📥 接收回传 (POS: {payload.pos_sn})")
     
-    # 1. 处理新注册 (New Registrations)
+    # 1. 建立重映射表 (OfflineID -> ServerID)
+    id_remap = {}
+
+    # 2. 处理新注册 (Registration with Collision Healing)
     new_cust_count = 0
     for rc in payload.new_registrations:
-        if db.query(Customer).filter(or_(Customer.uuid == rc.uuid, Customer.offline_origin_uuid == rc.uuid)).first():
-            continue
+        # 检查 ID 是否冲突
+        existing = db.query(Customer).filter(Customer.uuid == rc.uuid).first()
         
-        real_uuid = get_snowflake_id()
-        new_cust = Customer(
-            uuid=real_uuid, offline_origin_uuid=rc.uuid,
-            first_name=rc.first_name, last_name=rc.last_name,
-            gender=rc.gender, mobile=rc.mobile, email=rc.email,
-            address=rc.address, region_id=rc.region_id, status=1,
-            beneficiary_count=rc.beneficiary_count, representative_name=rc.representative_name,
-            created_at=rc.created_at or datetime.now()
-        )
-        db.add(new_cust)
-        db.flush()
-        # 立即处理开户自带的资产绑定
-        if rc.card_uuid or rc.shs_machine_id:
-            _bind_assets_sync(db, real_uuid, rc.card_uuid, rc.shs_machine_id, rc.created_at)
-        new_cust_count += 1
+        final_uuid = rc.uuid
+        if existing:
+            # 💡 发现冲突！强制纠偏：生成一个基于该地区的全新 ID
+            final_uuid = get_snowflake_id() # 此时 snowflake 是安全的
+            print(f"⚠️ 发现 ID 冲突！{rc.uuid} 已强制修正为 {final_uuid}")
+        
+        id_remap[rc.uuid] = final_uuid
 
-    # 2. 处理资产变更 (Asset Installations)
+        if not existing:
+            new_cust = Customer(
+                uuid=final_uuid, 
+                offline_origin_uuid=rc.uuid, # 记录原始 ID 以防万一
+                first_name=rc.first_name, last_name=rc.last_name,
+                gender=rc.gender, mobile=rc.mobile, email=rc.email,
+                address=rc.address, region_id=rc.region_id or current_user.region_id, 
+                status=1, created_at=rc.created_at or datetime.now()
+            )
+            db.add(new_cust)
+            db.flush()
+            # 处理开户自带的绑定 (使用修正后的 ID)
+            if rc.card_uuid or rc.shs_machine_id:
+                _bind_assets_sync(db, final_uuid, rc.card_uuid, rc.shs_machine_id, rc.created_at)
+            new_cust_count += 1
+
+    # 3. 处理资产变更 (Binding with Remapping)
     install_count = 0
     for inst in payload.asset_installations:
-        # 兼容性查找：POS 可能传的是 offline_uuid
-        target_cust = db.query(Customer).filter(or_(Customer.uuid == inst.customer_uuid, Customer.offline_origin_uuid == inst.customer_uuid)).first()
-        if target_cust:
-            if _bind_assets_sync(db, target_cust.uuid, inst.card_uuid, inst.shs_machine_id, inst.installed_at):
-                install_count += 1
+        # 自动识别并使用修正后的 ID
+        target_uuid = id_remap.get(inst.customer_uuid, inst.customer_uuid)
+        if _bind_assets_sync(db, target_uuid, inst.card_uuid, inst.shs_machine_id, inst.installed_at):
+            install_count += 1
     
-    # 3. 处理交易流水 (Transactions)
+    # 4. 处理交易流水 (Transactions with Remapping)
     tx_count = 0
     for tx in payload.transactions:
         if db.query(TransactionLog).filter(TransactionLog.transaction_id == tx.transaction_id).first():
             continue
         
-        target_cust = db.query(Customer).filter(or_(Customer.uuid == tx.customer_uuid, Customer.offline_origin_uuid == tx.customer_uuid)).with_for_update().first()
+        # 自动识别并使用修正后的 ID
+        target_uuid = id_remap.get(tx.customer_uuid, tx.customer_uuid)
+        target_cust = db.query(Customer).filter(Customer.uuid == target_uuid).first()
         if not target_cust: continue
 
         # 更新有效期
@@ -124,7 +136,7 @@ def upload_offline_data(
         target_cust.total_recharged_amount = (target_cust.total_recharged_amount or 0) + Decimal(str(tx.amount))
 
         db.add(TransactionLog(
-            transaction_id=tx.transaction_id, customer_uuid=target_cust.uuid,
+            transaction_id=tx.transaction_id, customer_uuid=target_uuid,
             card_uuid=tx.card_uuid.upper() if tx.card_uuid else None,
             shs_machine_id=tx.shs_machine_id, days=tx.days, amount=tx.amount,
             transaction_time=tx.transaction_time, action_type=tx.action_type,
@@ -133,7 +145,6 @@ def upload_offline_data(
         tx_count += 1
 
     db.commit()
-    print(f"✅ Sync done: {new_cust_count} regs, {install_count} assets, {tx_count} txs.")
     
     # 额外反馈：获取当前 POS 的实时锁定状态
     pos_status = db.query(POSMachine).filter(POSMachine.pos_sn == payload.pos_sn).first()
@@ -201,10 +212,24 @@ def pos_bootstrap_sync(
     customer_uuids = [c["uuid"] for c in customers_data]
     recent_transactions = []
     if customer_uuids:
-        recent_transactions = db.query(TransactionLog)\
+        # 修正：将 TransactionLog 模型对象显式转换为字典，以适配 POSOfflineTransaction 模式
+        tx_logs = db.query(TransactionLog)\
             .filter(TransactionLog.customer_uuid.in_(customer_uuids))\
             .order_by(TransactionLog.transaction_time.desc())\
             .limit(1000).all()
+
+        for tx in tx_logs:
+            recent_transactions.append({
+                "transaction_id": tx.transaction_id,
+                "customer_uuid": tx.customer_uuid,
+                "card_uuid": tx.card_uuid,
+                "days": float(tx.days),
+                "amount": float(tx.amount),
+                "transaction_time": tx.transaction_time,
+                "shs_machine_id": tx.shs_machine_id,
+                "action_type": tx.action_type,
+                "operator_username": tx.operator_username
+            })
 
     config = db.query(ProviderConfig).first()
     region = db.query(Region).filter(Region.id == current_user.region_id).first()

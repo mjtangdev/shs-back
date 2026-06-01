@@ -106,6 +106,23 @@ class POSSyncSolarUnitItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+# --- POS 离线数据上传模型 ---
+
+class POSOfflineTransaction(BaseModel):
+    transaction_id: str          # POS 端生成的唯一交易 ID
+    customer_uuid: str
+    card_uuid: str | None = None
+    days: float = Field(..., description="充值天数")
+    shs_machine_id: Optional[str] = None
+    amount: float = Field(..., description="充值金额")
+    transaction_time: datetime
+    action_type: str            # RECHARGE (充值), COLLECT (收款) 等
+    operator_username: str      # 强制必填：离线操作的实际业务员用户名
+    latitude: Optional[str] = None  # 离线记录的纬度
+    longitude: Optional[str] = None # 离线记录的经度
+
+    model_config = ConfigDict(from_attributes=True)
+
 class POSSyncResponse(BaseModel):
     server_time: datetime
     # 1. 基础配置
@@ -120,23 +137,10 @@ class POSSyncResponse(BaseModel):
     # 5. 在库未绑定资产列表 (用于离线绑定挑选)
     cards: List[POSSyncCardItem] = []
     solar_units: List[POSSyncSolarUnitItem] = []
+    # 6. 历史交易流水
+    transactions: List[POSOfflineTransaction] = []
 
     model_config = ConfigDict(from_attributes=True)
-
-# --- POS 离线数据上传模型 ---
-
-class POSOfflineTransaction(BaseModel):
-    transaction_id: str          # POS 端生成的唯一交易 ID
-    customer_uuid: str
-    card_uuid: str
-    days: float = Field(..., description="充值天数")
-    shs_machine_id: Optional[str] = None
-    amount: float = Field(..., description="充值金额")
-    transaction_time: datetime
-    action_type: str            # RECHARGE (充值), COLLECT (收款) 等
-    operator_username: str      # 强制必填：离线操作的实际业务员用户名
-    latitude: Optional[str] = None  # 离线记录的纬度
-    longitude: Optional[str] = None # 离线记录的经度
 
 class POSOfflineCustomerCreate(BaseModel):
     uuid: str
