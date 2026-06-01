@@ -53,6 +53,7 @@ class UserRead(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 class UserUpdate(BaseModel):
+    user_id: int # 👈 重新放回 ID，支持平铺 JSON 解析
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     mobile: Optional[str] = None

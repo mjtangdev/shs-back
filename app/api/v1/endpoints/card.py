@@ -32,26 +32,30 @@ def get_cards(
         joinedload(Card.customer).joinedload(Customer.region).joinedload(Region.parent)
     )
     
-    # 确定过滤的基础 region_id
-    filter_region_id = region_id
+    # 逻辑增强：根据角色进行数据隔离
     if current_user.role == 2:
-        filter_region_id = current_user.region_id
-
-    if filter_region_id is not None:
-        # 递归获取子区域 ID
-        allowed_ids = [filter_region_id]
-        children = db.query(Region.id).filter(Region.parent_id == filter_region_id).all()
+        # 业务员只能看：1. 库存空卡 OR 2. 自己辖区内已绑定的卡
+        user_region_id = current_user.region_id
+        allowed_ids = [user_region_id]
+        children = db.query(Region.id).filter(Region.parent_id == user_region_id).all()
         if children:
             c_ids = [c[0] for c in children]
             allowed_ids.extend(c_ids)
             sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
             allowed_ids.extend([sc[0] for sc in sub_children])
         
-        # 业务员隔离逻辑：可以看在库(0)或自己区域的
-        if current_user.role == 2:
-            query = query.filter(or_(Card.status == 0, Customer.region_id.in_(allowed_ids)))
-        else:
-            query = query.filter(Customer.region_id.in_(allowed_ids))
+        query = query.filter(or_(Card.status == 0, Customer.region_id.in_(allowed_ids)))
+    
+    elif region_id is not None:
+        # 管理员/财务按需过滤区域
+        allowed_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            c_ids = [c[0] for c in children]
+            allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+        query = query.filter(Customer.region_id.in_(allowed_ids))
 
     if status is not None:
         query = query.filter(Card.status == status)
@@ -91,7 +95,14 @@ def get_cards(
 def create_card(db: Session = Depends(get_db), card_in: CardCreate = None, current_user: Any = Depends(get_finance_or_admin)):
     # Enforce uppercase for UUID
     card_in.card_uuid = card_in.card_uuid.strip().upper()
-    existing = db.query(Card).filter(or_(Card.card_number == card_in.card_number, Card.card_uuid == card_in.card_uuid)).first()
+    card_in.card_number = (card_in.card_number or "").strip()
+
+    # 查重逻辑：只有在提供了非空实体卡号时，才校验卡号重复
+    filters = [Card.card_uuid == card_in.card_uuid]
+    if card_in.card_number:
+        filters.append(Card.card_number == card_in.card_number)
+        
+    existing = db.query(Card).filter(or_(*filters)).first()
     if existing:
         raise HTTPException(status_code=400, detail="Physical Card Number or UUID already exists")
     
@@ -133,12 +144,13 @@ async def import_cards(
     df = df.where(pd.notnull(df), None)
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
 
-    exist_nums = {c[0] for c in db.query(Card.card_number).all()}
+    # 过滤掉空的卡号，防止批量导入时把 "" 误判为重复
+    exist_nums = {c[0] for c in db.query(Card.card_number).all() if c[0]}
     exist_uuids = {c[0] for c in db.query(Card.card_uuid).all()}
     
     batch, skipped = [], []
     for idx, row in df.iterrows():
-        n = str(row.get('card_number', '')).strip() if row.get('card_number') else None
+        n = str(row.get('card_number', '')).strip() if row.get('card_number') else ""
         u = str(row.get('card_uuid', '')).strip().upper() # Enforce Uppercase
         
         # 只要有 UUID 就可以放行入库
@@ -256,12 +268,14 @@ def update_card(
 
     # 只允许更新 card_number
     if card_in.card_number is not None:
-        # 检查卡号冲突
-        if card_in.card_number != card.card_number:
-            existing = db.query(Card).filter(Card.card_number == card_in.card_number).first()
-            if existing:
-                raise HTTPException(status_code=400, detail="Physical Card Number already exists")
-        card.card_number = card_in.card_number
+        new_number = card_in.card_number.strip()
+        # 检查卡号冲突 (仅当新卡号不为空且发生变更时)
+        if new_number != card.card_number:
+            if new_number != "":
+                existing = db.query(Card).filter(Card.card_number == new_number).first()
+                if existing:
+                    raise HTTPException(status_code=400, detail="Physical Card Number already exists")
+        card.card_number = new_number
 
     card.updated_at = datetime.now()
     db.add(card)

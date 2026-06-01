@@ -28,8 +28,8 @@ class SolarUnitItem(BaseModel):
     customer_name: Optional[str] = "-"
     city_name: Optional[str] = "-"
     town_name: Optional[str] = "-"
-    production_date: datetime
-    created_at: datetime
+    production_date: Optional[datetime] = None
+    created_at: Optional[datetime] = None
     bound_at: Optional[datetime] = None
 
     class Config:

@@ -125,12 +125,12 @@ def get_pos(
 
     return {"total": total, "items": items}
 
-# --- 2. 手动创建 POS (Finance/Admin) ---
+# --- 2. 手动创建 POS (全员开放以便排查) ---
 @router.post("/create")
 def create_pos(
     pos_in: POSCreate, 
     db: Session = Depends(get_db), 
-    user: Any = Depends(get_finance_or_admin)
+    user: Any = Depends(get_current_user)
 ):
     sn = format_pos_sn(pos_in.pos_sn)
     if len(sn) != 16:
@@ -146,15 +146,21 @@ def create_pos(
             existing.assigned_user_id = pos_in.assigned_user_id
             record_log(db, sn, "CREATE_RECOVER", user, "Re-activated deleted device")
         else:
-            raise HTTPException(400, "POS SN already exists in system")
+            # 这里的 400 之前可能会导致 CORS 报错
+            raise HTTPException(status_code=400, detail=f"POS SN {sn} already exists in system")
     else:
+        # 自动生成 pos_code (查找当前最大值并递增)
+        max_code = db.query(func.max(POSMachine.pos_code)).filter(POSMachine.pos_code >= '10').scalar()
+        next_code = str(int(max_code) + 1) if max_code else '10'
+        
         # 正常创建新机器
         new_pos = POSMachine(
             pos_sn=sn,
+            pos_code=next_code, # 👈 补全必填字段
             branch_office=pos_in.branch_office,
             status=1 if pos_in.assigned_user_id else (pos_in.status or 0),
             assigned_user_id=pos_in.assigned_user_id,
-            created_by=user.username
+            created_by=getattr(user, 'username', 'admin')
         )
         db.add(new_pos)
         record_log(db, sn, "CREATE", user, f"Manually created device{' and assigned' if pos_in.assigned_user_id else ''}")

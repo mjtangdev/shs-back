@@ -3,6 +3,7 @@ import string
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal, engine
+from sqlalchemy import text
 from app.db.base_class import Base
 from app.models.org import Region, BusinessEntity
 from app.models.users import User
@@ -42,6 +43,13 @@ def seed_data():
         print("Step 0: Dropping and recreating all tables (to sync schema)...")
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
+        
+        try:
+            db.execute(text('DROP INDEX IF EXISTS "ix_cards_card_number" CASCADE;'))
+            db.execute(text('ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_number_key CASCADE;'))
+            db.execute(text("CREATE UNIQUE INDEX ix_cards_card_number ON cards (card_number) WHERE card_number != '';"))
+        except Exception:
+            db.rollback()
         db.commit()
 
         # 1. 核心账号与总公司

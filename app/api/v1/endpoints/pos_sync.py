@@ -109,7 +109,7 @@ def upload_offline_data(
         if db.query(TransactionLog).filter(TransactionLog.transaction_id == tx.transaction_id).first():
             continue
         
-        target_cust = db.query(Customer).filter(or_(Customer.uuid == tx.customer_uuid, Customer.offline_origin_uuid == tx.customer_uuid)).first()
+        target_cust = db.query(Customer).filter(or_(Customer.uuid == tx.customer_uuid, Customer.offline_origin_uuid == tx.customer_uuid)).with_for_update().first()
         if not target_cust: continue
 
         # 更新有效期
@@ -179,20 +179,27 @@ def pos_bootstrap_sync(
         
         customers_data.append({
             "id": c.id, "uuid": c.uuid, "first_name": c.first_name, "last_name": c.last_name,
-            "card_uuid": c_card, "shs_machine_id": c_shs, "status": c.status,
+            "card_uuid": c_card or "", "shs_machine_id": c_shs or "", "status": c.status,
             "total_recharged_days": float(c.total_recharged_days or 0),
             "expiry_time": c.expiry_time, "region_name": c.region.name if c.region else "Unknown",
             "created_at": c.created_at,
             "updated_at": c.updated_at
         })
 
-    # 包含在用和库存
-    full_cards = db.query(Card).filter(or_(Card.card_uuid.in_(bound_card_uuids), Card.status == 0)).limit(1000).all()
-    full_units = db.query(SolarUnit).filter(or_(SolarUnit.shs_machine_id.in_(bound_shs_ids), SolarUnit.shs_status == 0)).limit(1000).all()
-    
+    # 避免空列表产生 SQLAlchemy Warning
+    card_filters = [Card.status == 0]
+    if bound_card_uuids:
+        card_filters.append(Card.card_uuid.in_(bound_card_uuids))
+    full_cards = db.query(Card).filter(or_(*card_filters)).limit(1000).all()
+
+    unit_filters = [SolarUnit.shs_status == 0]
+    if bound_shs_ids:
+        unit_filters.append(SolarUnit.shs_machine_id.in_(bound_shs_ids))
+    full_units = db.query(SolarUnit).filter(or_(*unit_filters)).limit(1000).all()
+
     # 4. 获取这些客户最近的流水记录 (最近 1000 条作为参考池)
-    recent_transactions = []
     customer_uuids = [c["uuid"] for c in customers_data]
+    recent_transactions = []
     if customer_uuids:
         recent_transactions = db.query(TransactionLog)\
             .filter(TransactionLog.customer_uuid.in_(customer_uuids))\

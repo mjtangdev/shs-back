@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.session import SessionLocal, engine
+from sqlalchemy import text
 from app.db.base_class import Base
 from app.models.org import Region
 from app.models.users import User
@@ -39,6 +40,14 @@ def seed():
         print("Step 0: Cleaning and Recreating Database Tables...")
         Base.metadata.drop_all(bind=engine)
         Base.metadata.create_all(bind=engine)
+
+        try:
+            db.execute(text('DROP INDEX IF EXISTS "ix_cards_card_number" CASCADE;'))
+            db.execute(text('ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_number_key CASCADE;'))
+            db.execute(text("CREATE UNIQUE INDEX ix_cards_card_number ON cards (card_number) WHERE card_number != '';"))
+        except Exception:
+            db.rollback()
+        db.commit()
 
         # 1. 初始化总公司 QUEZELCO-1
         print("Step 1: Setting up QUEZELCO-1 Headquarters...")

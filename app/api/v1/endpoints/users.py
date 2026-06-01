@@ -80,14 +80,12 @@ def create_user(
         if not region:
             raise HTTPException(status_code=404, detail="Assigned region not found")
         
-        # 核心逻辑：强制分配到最细粒度（叶子节点）
-        # 如果该区域拥有子区域，则不允许直接分配到该层级，必须深入到下一级
-        if user_in.role == 2: # 仅针对业务员强制校验
-            has_children = db.query(Region.id).filter(Region.parent_id == region_id).first()
-            if has_children:
+        # 核心逻辑：业务员 (Role 2) 必须且只能分配到第三层级 (Purok, level=2)
+        if user_in.role == 2:
+            if region.level != 2:
                 raise HTTPException(
                     status_code=400, 
-                    detail=f"Invalid Assignment: Region '{region.name}' has sub-regions. Please assign the operator to a specific leaf level (Barangay or Purok)."
+                    detail=f"Invalid Assignment: Operators must be assigned to a Purok (Level 3). Selected region '{region.name}' is at level {region.level + 1}."
                 )
     
     db.add(db_obj)
@@ -118,13 +116,12 @@ def read_users(
 # --- 3. 更新用户 ---
 @router.patch("/update", response_model=UserRead)
 def update_user(
-    user_id: int = Body(..., embed=True),
-    user_in: UserUpdate = Body(...),
+    user_in: UserUpdate,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """更新用户信息 - ID 通过 Body 传递"""
-    db_user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    """更新用户信息 - 路径恢复为 /update，支持平铺 JSON"""
+    db_user = db.query(User).filter(User.id == user_in.user_id, User.is_deleted == False).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -142,14 +139,13 @@ def update_user(
             if not region:
                 raise HTTPException(status_code=404, detail="Assigned region not found")
             
-            # 核心逻辑：强制分配到最细粒度（叶子节点）
+            # 核心逻辑：业务员 (Role 2) 必须且只能分配到第三层级 (Purok, level=2)
             target_role = update_data.get("role", db_user.role)
             if target_role == 2:
-                has_children = db.query(Region.id).filter(Region.parent_id == rid).first()
-                if has_children:
+                if region.level != 2:
                     raise HTTPException(
                         status_code=400, 
-                        detail=f"Invalid Assignment: Region '{region.name}' has sub-regions. Please assign the operator to a specific leaf level (Barangay or Purok)."
+                        detail=f"Invalid Assignment: Operators must be assigned to a Purok (Level 3). Selected region '{region.name}' is at level {region.level + 1}."
                     )
 
     if "password" in update_data:

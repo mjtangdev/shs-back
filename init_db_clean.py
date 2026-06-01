@@ -12,6 +12,7 @@ from app.models.transaction import TransactionLog
 from app.models.pos_staging import POSStagingTransaction, POSStagingCustomer
 from app.core.auth_utils import hash_password
 from datetime import datetime
+from sqlalchemy import text
 
 def init_db_clean():
     print(f"--- [Clean Mode] 数据库连接尝试：{engine.url.host}:{engine.url.port}/{engine.url.database} ---")
@@ -21,6 +22,14 @@ def init_db_clean():
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()
+    try:
+        db.execute(text('DROP INDEX IF EXISTS "ix_cards_card_number" CASCADE;'))
+        db.execute(text('ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_number_key CASCADE;'))
+        db.execute(text("CREATE UNIQUE INDEX ix_cards_card_number ON cards (card_number) WHERE card_number != '';"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
     try:
         print("✨ 正在以 [纯净生产模式] 初始化数据库...")
         

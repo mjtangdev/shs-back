@@ -153,6 +153,18 @@ def init_db():
     # 强制彻底重置所有表结构
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    
+    # 修正 Postgres 唯一索引：允许为空字符串
+    db_tmp = SessionLocal()
+    try:
+        db_tmp.execute(text('DROP INDEX IF EXISTS "ix_cards_card_number" CASCADE;'))
+        db_tmp.execute(text('ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_number_key CASCADE;'))
+        db_tmp.execute(text("CREATE UNIQUE INDEX ix_cards_card_number ON cards (card_number) WHERE card_number != '';"))
+        db_tmp.commit()
+    except Exception:
+        db_tmp.rollback()
+    finally:
+        db_tmp.close()
 
     # 优先尝试从 JSON 镜像恢复
     if restore_from_json():

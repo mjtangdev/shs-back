@@ -33,26 +33,30 @@ def get_solar_units(
         joinedload(SolarUnit.customer).joinedload(Customer.region).joinedload(Region.parent)
     )
 
-    # 确定过滤的基础 region_id
-    filter_region_id = region_id
+    # 逻辑增强：根据角色进行数据隔离 (与 IC 卡逻辑对齐)
     if current_user.role == 2:
-        filter_region_id = current_user.region_id
-
-    if filter_region_id is not None:
-        # 递归获取子区域 ID
-        allowed_ids = [filter_region_id]
-        children = db.query(Region.id).filter(Region.parent_id == filter_region_id).all()
+        # 业务员只能看：1. 库存设备 (Status 0) OR 2. 自己辖区内已绑定的设备
+        user_region_id = current_user.region_id
+        allowed_ids = [user_region_id]
+        children = db.query(Region.id).filter(Region.parent_id == user_region_id).all()
         if children:
             c_ids = [c[0] for c in children]
             allowed_ids.extend(c_ids)
             sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
             allowed_ids.extend([sc[0] for sc in sub_children])
         
-        # 业务员隔离逻辑：可以看在库(0)或自己区域的设备
-        if current_user.role == 2:
-            query = query.filter(or_(SolarUnit.shs_status == 0, Customer.region_id.in_(allowed_ids)))
-        else:
-            query = query.filter(Customer.region_id.in_(allowed_ids))
+        query = query.filter(or_(SolarUnit.shs_status == 0, Customer.region_id.in_(allowed_ids)))
+    
+    elif region_id is not None:
+        # 管理员/财务按需过滤区域
+        allowed_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            c_ids = [c[0] for c in children]
+            allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
+            allowed_ids.extend([sc[0] for sc in sub_children])
+        query = query.filter(Customer.region_id.in_(allowed_ids))
 
     if status is not None:
         query = query.filter(SolarUnit.shs_status == status)

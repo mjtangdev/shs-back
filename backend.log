@@ -1231,3 +1231,191 @@ fastapi.exceptions.ResponseValidationError: 20 validation errors:
 2026-05-31 23:43:14,441 - INFO - Added job "perform_db_backup" to job store "default"
 2026-05-31 23:43:14,441 - INFO - Scheduler started
 2026-05-31 23:43:14,442 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 11:15:06,865 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 11:15:07,449 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 11:15:07,556 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 11:15:07,576 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 11:15:07,576 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 11:15:07,577 - INFO - Scheduler started
+2026-06-01 11:15:07,577 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 11:50:55,530 - INFO - Scheduler has been shut down
+2026-06-01 12:02:45,084 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:02:45,463 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:02:45,560 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:02:45,575 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:02:45,575 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:02:45,575 - INFO - Scheduler started
+2026-06-01 12:02:45,575 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:03:33,837 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect password
+2026-06-01 12:04:00,870 - WARNING - ❌ 422 Validation Error at /api/v1/user/update: user_in: Field required
+2026-06-01 12:04:06,491 - WARNING - ❌ 422 Validation Error at /api/v1/user/update: user_in: Field required
+2026-06-01 12:04:39,531 - INFO - Scheduler has been shut down
+2026-06-01 12:04:40,934 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:04:41,217 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:04:41,238 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:04:41,254 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:04:41,255 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:04:41,255 - INFO - Scheduler started
+2026-06-01 12:04:41,255 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:04:50,352 - INFO - Scheduler has been shut down
+2026-06-01 12:04:51,546 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:04:51,610 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:04:51,621 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:04:51,636 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:04:51,637 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:04:51,637 - INFO - Scheduler started
+2026-06-01 12:04:51,637 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:04:58,116 - INFO - Scheduler has been shut down
+2026-06-01 12:04:59,238 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:04:59,310 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:04:59,324 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:04:59,339 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:04:59,339 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:04:59,339 - INFO - Scheduler started
+2026-06-01 12:04:59,339 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:05:21,897 - WARNING - ⚠️ Business Error at /api/v1/login/token-json: 400 - Incorrect username or email
+2026-06-01 12:09:12,910 - INFO - Scheduler has been shut down
+2026-06-01 12:09:14,403 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:09:14,569 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:09:14,587 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:09:14,602 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:09:14,602 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:09:14,602 - INFO - Scheduler started
+2026-06-01 12:09:14,602 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:11:04,543 - INFO - Scheduler has been shut down
+2026-06-01 12:11:07,013 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:11:07,179 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:11:07,202 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:11:07,224 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:11:07,225 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:11:07,225 - INFO - Scheduler started
+2026-06-01 12:11:07,225 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:13:06,835 - INFO - Scheduler has been shut down
+2026-06-01 12:13:08,830 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:13:09,034 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:13:09,071 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:13:09,089 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:13:09,089 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:13:09,089 - INFO - Scheduler started
+2026-06-01 12:13:09,089 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:14:19,825 - WARNING - ⚠️ Business Error at /api/v1/user/: 403 - Permission denied: Admin access required
+2026-06-01 12:14:19,832 - WARNING - ⚠️ Business Error at /api/v1/user/: 403 - Permission denied: Admin access required
+2026-06-01 12:16:30,630 - INFO - Scheduler has been shut down
+2026-06-01 12:16:32,166 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:16:32,425 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:16:32,444 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:16:32,461 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:16:32,461 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:16:32,461 - INFO - Scheduler started
+2026-06-01 12:16:32,461 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 12:16:44,788 - INFO - Scheduler has been shut down
+2026-06-01 12:16:46,270 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 12:16:46,338 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 12:16:46,354 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 12:16:46,368 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 12:16:46,368 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 12:16:46,368 - INFO - Scheduler started
+2026-06-01 12:16:46,369 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 14:56:20,681 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 14:56:22,913 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 14:56:23,282 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 14:56:23,393 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 14:56:23,395 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 14:56:23,395 - INFO - Scheduler started
+2026-06-01 14:56:23,402 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 14:58:55,392 - INFO - Scheduler has been shut down
+2026-06-01 14:58:59,704 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 14:59:00,421 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 14:59:00,782 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 14:59:00,937 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 14:59:00,938 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 14:59:00,938 - INFO - Scheduler started
+2026-06-01 14:59:00,939 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 14:59:50,297 - INFO - Scheduler has been shut down
+2026-06-01 15:36:20,059 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 15:36:20,624 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 15:36:20,907 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 15:36:20,948 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 15:36:20,949 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 15:36:20,949 - INFO - Scheduler started
+2026-06-01 15:36:20,949 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 15:37:11,294 - INFO - Scheduler has been shut down
+2026-06-01 15:39:09,901 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 15:39:10,232 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 15:39:10,280 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 15:39:10,326 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 15:39:10,326 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 15:39:10,327 - INFO - Scheduler started
+2026-06-01 15:39:10,327 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 15:40:45,965 - INFO - Scheduler has been shut down
+2026-06-01 15:41:16,071 - INFO - --- 正在检查并创建表结构 ---
+2026-06-01 15:41:18,206 - INFO - --- 正在自动校准数据库发号器 ---
+2026-06-01 15:41:18,498 - INFO - ✅ 数据库发号器校准完成
+2026-06-01 15:41:19,039 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 15:41:19,045 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 15:41:19,046 - INFO - Scheduler started
+2026-06-01 15:41:19,053 - INFO - ⏰ Database auto-backup scheduler started (Daily at 02:00)
+2026-06-01 15:45:55,296 - INFO - Scheduler has been shut down
+2026-06-01 15:45:59,131 - INFO - --- 启动中：检查数据库与序列 ---
+2026-06-01 15:46:02,586 - INFO - ✅ 数据库准备就绪
+2026-06-01 15:46:03,211 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 15:46:03,212 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 15:46:03,212 - INFO - Scheduler started
+2026-06-01 15:50:28,424 - INFO - --- 启动中：检查数据库与序列 ---
+2026-06-01 15:50:28,886 - INFO - ✅ 数据库准备就绪
+2026-06-01 15:50:28,922 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 15:50:28,922 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 15:50:28,922 - INFO - Scheduler started
+2026-06-01 15:52:50,396 - INFO - Scheduler has been shut down
+2026-06-01 17:00:23,225 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 17:00:23,898 - INFO - ✅ Database ready.
+2026-06-01 17:00:23,924 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 17:00:23,924 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 17:00:23,924 - INFO - Scheduler started
+2026-06-01 17:18:23,482 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 17:18:25,200 - INFO - ✅ Database ready.
+2026-06-01 17:18:25,244 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 17:18:25,245 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 17:18:25,245 - INFO - Scheduler started
+2026-06-01 17:23:31,365 - INFO - Scheduler has been shut down
+2026-06-01 17:23:41,447 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 17:23:42,767 - INFO - ✅ Database ready.
+2026-06-01 17:23:42,965 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 17:23:42,966 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 17:23:42,966 - INFO - Scheduler started
+2026-06-01 17:28:13,317 - INFO - Scheduler has been shut down
+2026-06-01 17:30:10,650 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 17:30:12,457 - INFO - ✅ Database ready.
+2026-06-01 17:30:12,573 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 17:30:12,573 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 17:30:12,573 - INFO - Scheduler started
+2026-06-01 18:35:42,578 - INFO - Scheduler has been shut down
+2026-06-01 18:35:43,832 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 18:35:44,211 - INFO - ✅ Database ready.
+2026-06-01 18:35:44,239 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 18:35:44,239 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 18:35:44,239 - INFO - Scheduler started
+2026-06-01 18:44:06,890 - INFO - Scheduler has been shut down
+2026-06-01 18:44:12,334 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 18:44:12,625 - INFO - ✅ Database ready.
+2026-06-01 18:44:12,659 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 18:44:12,659 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 18:44:12,660 - INFO - Scheduler started
+2026-06-01 18:58:12,047 - INFO - Scheduler has been shut down
+2026-06-01 18:58:15,324 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 18:58:15,707 - INFO - ✅ Database ready.
+2026-06-01 18:58:15,726 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 18:58:15,726 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 18:58:15,726 - INFO - Scheduler started
+2026-06-01 18:58:15,828 - INFO - Scheduler has been shut down
+2026-06-01 18:58:16,876 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 18:58:16,957 - INFO - ✅ Database ready.
+2026-06-01 18:58:16,968 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 18:58:16,968 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 18:58:16,968 - INFO - Scheduler started
+2026-06-01 18:58:40,730 - INFO - Scheduler has been shut down
+2026-06-01 19:13:23,892 - INFO - 🚀 SHS Backend Starting...
+2026-06-01 19:13:24,026 - INFO - ✅ Database ready.
+2026-06-01 19:13:24,043 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-01 19:13:24,043 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-01 19:13:24,043 - INFO - Scheduler started

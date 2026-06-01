@@ -48,6 +48,16 @@ def migrate():
             db.execute(text(f"DROP TABLE IF EXISTS {table.name} CASCADE"))
         db.commit()
         Base.metadata.create_all(bind=engine)
+        
+        # 修正：将卡号的唯一索引改为“部分唯一索引”(Partial Unique Index)
+        # 从而允许多张卡片的 card_number 都为 "" (空字符串) 而不触发唯一约束冲突
+        try:
+            db.execute(text('DROP INDEX IF EXISTS "ix_cards_card_number" CASCADE;'))
+            db.execute(text('ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_number_key CASCADE;'))
+            db.execute(text("CREATE UNIQUE INDEX ix_cards_card_number ON cards (card_number) WHERE card_number != '';"))
+            db.commit()
+        except Exception as e:
+            db.rollback()
 
         # 1. 重建 QUEZELCO-1 组织架构
         print("Step 1: 重建组织架构...")
@@ -157,8 +167,8 @@ def migrate():
             try:
                 # 2: card_uuid (物理 UID)
                 u_id = row[2].upper()
-                # 强制 card_number 为 None，不读取老系统的任何数据
-                c_obj = Card(card_uuid=u_id, card_number=None, status=0, created_at=datetime.now())
+                # 根源解决：直接将没有实体卡号的设为 ""
+                c_obj = Card(card_uuid=u_id, card_number="", status=0, created_at=datetime.now())
                 db.add(c_obj)
                 master_cards[u_id] = c_obj
             except: continue
@@ -184,6 +194,19 @@ def migrate():
         db.add(User(username="fina", password_hash=hash_password("test123"), role=3, mobile="09222222222", first_name="Finance", last_name="Manager"))
 
         db.commit()
+        
+        # 8. 核心增强：同步所有表的发号器 (一劳永逸)
+        print("Step 8: 正在强制同步数据库发号器...")
+        tables = ["users", "customers", "cards", "solar_units", "transaction_logs", "regions", "pos_machines"]
+        for table in tables:
+            try:
+                seq = db.execute(text(f"SELECT pg_get_serial_sequence('{table}', 'id')")).scalar()
+                if seq:
+                    db.execute(text(f"SELECT setval('{seq}', COALESCE((SELECT MAX(id) FROM {table}), 1), true)"))
+                    print(f"   - {table} 序列已归位")
+            except: pass
+        db.commit()
+
         print(f"\n🎉 迁移大功告成！已成功导入 {pos_count} 台 POS 机资产。")
 
     except Exception as e:

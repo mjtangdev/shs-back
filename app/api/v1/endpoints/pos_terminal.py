@@ -1,7 +1,7 @@
-from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from typing import Any, Optional, List
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func, or_
 from datetime import datetime
 
 from app.api import deps
@@ -11,10 +11,54 @@ from app.models.users import User
 from app.models.pos import POSMachine, POSActionLog
 from app.models.org import Region
 from app.models.config import ProviderConfig
-from app.schemas.pos import POSLoginRequest
+from app.schemas.pos import POSLoginRequest, POSList, POSUpdate
 
 router = APIRouter()
 
+# --- 1. Web 端终端列表查询接口 ---
+@router.get("/", response_model=POSList)
+def get_pos_terminals(
+    db: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 50,
+    search: Optional[str] = Query(None),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """获取所有 POS 终端列表 (仅管理员)"""
+    query = db.query(POSMachine).options(joinedload(POSMachine.assigned_user))
+    
+    if search:
+        sf = f"%{search}%"
+        query = query.filter(or_(POSMachine.pos_sn.ilike(sf), POSMachine.pos_code.ilike(sf)))
+    
+    total = query.count()
+    items = query.order_by(POSMachine.pos_code.asc()).offset(skip).limit(limit).all()
+    
+    # 由于 assigned_user_name 在 Response 模型里是可选的，SQLAlchemy 会自动处理映射
+    return {"total": total, "items": items}
+
+# --- 2. 编辑终端 (分配人员、状态修改) ---
+@router.patch("/{pos_id}")
+def update_pos_terminal(
+    pos_id: int,
+    obj_in: POSUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_finance_or_admin)
+):
+    pos = db.query(POSMachine).filter(POSMachine.id == pos_id).first()
+    if not pos:
+        raise HTTPException(status_code=404, detail="Terminal not found")
+    
+    update_data = obj_in.dict(exclude_unset=True)
+    for field in update_data:
+        setattr(pos, field, update_data[field])
+    
+    pos.updated_at = datetime.now()
+    db.add(pos)
+    db.commit()
+    return {"status": "success"}
+
+# --- 3. 辅助函数 ---
 def format_pos_sn(sn: str) -> str:
     sn = sn.strip()
     if len(sn) == 15:

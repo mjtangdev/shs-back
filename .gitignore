@@ -9,6 +9,7 @@ __pycache__/
 
 # Environment variables
 .env
+*.env
 
 # IDE
 .vscode/
@@ -17,8 +18,17 @@ __pycache__/
 # OS
 .DS_Store
 
+# Logs
+*.log
+
 # Database
 postgres_data/
+
+# Uploads (User generated content)
+static/uploads/
+
+# Data dumps
+production_data.json
 
 # Build scripts
 build_and_push.sh
