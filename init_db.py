@@ -132,10 +132,18 @@ def restore_from_json():
 
         # 7. 关键修正：同步所有表的 ID 序列 (Sequence Sync)
         print("- Syncing database sequences...")
-        tables = ["regions", "users", "customers", "cards", "solar_units", "transaction_logs"]
+        tables = ["regions", "users", "customers", "cards", "solar_units", "transaction_logs", "pos_machines"]
         for table in tables:
-            # 找到当前表最大的 ID，并把序列设为它的下一个
-            db.execute(text(f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), COALESCE(MAX(id), 1)) FROM {table}"))
+            try:
+                # 找到当前表最大的 ID
+                max_id = db.execute(text(f"SELECT MAX(id) FROM {table}")).scalar() or 1
+                seq = db.execute(text(f"SELECT pg_get_serial_sequence('{table}', 'id')")).scalar()
+                if seq:
+                    # 将序列拨到最大 ID，并设置 is_called=True 确保下一个 ID 是 max_id + 1
+                    db.execute(text(f"SELECT setval('{seq}', {max_id}, true)"))
+                    print(f"   - {table} sequence synced to {max_id}")
+            except Exception as e:
+                print(f"   ⚠️ Failed to sync sequence for {table}: {e}")
         db.commit()
 
         print("🎉 All real data restored and sequences synced successfully!")

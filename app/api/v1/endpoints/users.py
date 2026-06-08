@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 from app.api.deps import get_db, get_current_user, get_finance_or_admin, get_current_admin_user
 
 from app.models.users import User
@@ -113,15 +113,40 @@ def read_users(
     # 例如：如果管理员只能看自己市的用户...
     return [enrich_user_response(db, u) for u in users]
 
-# --- 3. 更新用户 ---
-@router.patch("/update", response_model=UserRead)
-def update_user(
-    user_in: UserUpdate,
+
+@router.get("/{user_id}", response_model=UserRead)
+def read_user_by_id(
+    user_id: int,
     db: Session = Depends(get_db),
     current_admin: User = Depends(get_current_admin_user)
 ):
-    """更新用户信息 - 路径恢复为 /update，支持平铺 JSON"""
-    db_user = db.query(User).filter(User.id == user_in.user_id, User.is_deleted == False).first()
+    """根据 ID 获取特定用户信息"""
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # 权限保护：禁止普通管理员查看比自己高级别或同级别的账号详细隐私
+    if user.role <= current_admin.role and user.id != current_admin.id and current_admin.role != 0:
+         # 允许查看，但可能需要脱敏？这里暂时允许查看，因为编辑页面需要数据
+         pass
+         
+    return enrich_user_response(db, user)
+
+# --- 3. 更新用户 ---
+@router.patch("/update", response_model=UserRead)
+@router.patch("/{user_id}", response_model=UserRead)
+def update_user(
+    user_in: UserUpdate,
+    user_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """更新用户信息 - 同时支持路径参数和 Body 传参"""
+    final_id = user_id or getattr(user_in, "user_id", None)
+    if not final_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+
+    db_user = db.query(User).filter(User.id == final_id, User.is_deleted == False).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 

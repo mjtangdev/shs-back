@@ -157,7 +157,43 @@ def update_customer(
     db.commit()
     return {"status": "success"}
 
-# --- 4. 导出 Excel ---
+# --- 4. 获取详情 (补全此接口以修复 405 错误) ---
+@router.get("/{customer_id}")
+def get_customer_detail(
+    customer_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Any = Depends(deps.get_current_user)
+):
+    customer = db.query(Customer).options(
+        joinedload(Customer.region).joinedload(Region.parent)
+    ).filter(Customer.id == customer_id).first()
+
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # 获取关联资产
+    cards = db.query(Card).filter(Card.customer_uuid == customer.uuid).all()
+    solar_units = db.query(SolarUnit).filter(SolarUnit.customer_uuid == customer.uuid).all()
+    recent_transactions = db.query(TransactionLog).filter(
+        TransactionLog.customer_uuid == customer.uuid
+    ).order_by(TransactionLog.transaction_time.desc()).limit(10).all()
+
+    display_region = customer.region.name if customer.region else "Unknown"
+    if customer.region and customer.region.level == 2 and customer.region.parent:
+        display_region = f"{customer.region.parent.name} - {customer.region.name}"
+
+    return {
+        "id": customer.id, "uuid": customer.uuid, "first_name": customer.first_name,
+        "last_name": customer.last_name, "gender": customer.gender, "mobile": customer.mobile,
+        "email": customer.email, "address": customer.address, "region_id": customer.region_id,
+        "region_name": display_region, "expiry_time": customer.expiry_time,
+        "total_recharged_days": float(customer.total_recharged_days or 0),
+        "total_recharged_amount": float(customer.total_recharged_amount or 0),
+        "created_at": customer.created_at,
+        "cards": cards, "solar_units": solar_units, "recent_transactions": recent_transactions
+    }
+
+# --- 5. 导出 Excel ---
 @router.get("/export")
 def export_customers(
     db: Session = Depends(deps.get_db),

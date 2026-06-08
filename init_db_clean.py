@@ -66,6 +66,19 @@ def init_db_clean():
         ))
 
         db.commit()
+        
+        # 6. 核心补丁：同步发号器
+        print("🔧 同步数据库发号器...")
+        tables = ["regions", "users", "customers", "cards", "solar_units", "transaction_logs", "pos_machines"]
+        for table in tables:
+            try:
+                max_id = db.execute(text(f"SELECT MAX(id) FROM {table}")).scalar() or 1
+                seq = db.execute(text(f"SELECT pg_get_serial_sequence('{table}', 'id')")).scalar()
+                if seq:
+                    db.execute(text(f"SELECT setval('{seq}', {max_id}, true)"))
+            except: pass
+        db.commit()
+
         print(f"\n🎉 纯净数据库初始化成功！仅保留 admin 及基础架构。")
         
     except Exception as e:
