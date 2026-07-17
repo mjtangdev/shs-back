@@ -1520,3 +1520,481 @@ connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection re
 2026-06-08 11:44:45,943 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
 2026-06-08 11:44:45,943 - INFO - Added job "perform_db_backup" to job store "default"
 2026-06-08 11:44:45,943 - INFO - Scheduler started
+2026-06-10 15:04:49,366 - INFO - 🚀 SHS Backend Starting...
+2026-06-10 15:04:49,522 - INFO - ✅ Database ready and sequences synced.
+2026-06-10 15:04:49,535 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-10 15:04:49,535 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-10 15:04:49,535 - INFO - Scheduler started
+2026-06-10 23:56:29,619 - INFO - 🚀 SHS Backend Starting...
+2026-06-10 23:56:29,735 - INFO - ✅ Database ready and sequences synced.
+2026-06-10 23:56:29,751 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-10 23:56:29,752 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-10 23:56:29,752 - INFO - Scheduler started
+2026-06-11 08:54:41,258 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 08:54:41,476 - ERROR - ❌ Startup error: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-06-11 08:54:41,491 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 08:54:41,491 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 08:54:41,491 - INFO - Scheduler started
+2026-06-11 08:55:48,179 - INFO - Scheduler has been shut down
+2026-06-11 08:56:33,305 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 08:56:33,536 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 08:56:33,549 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 08:56:33,549 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 08:56:33,549 - INFO - Scheduler started
+2026-06-11 09:02:39,844 - INFO - Scheduler has been shut down
+2026-06-11 09:03:06,658 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 09:03:06,723 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 09:03:06,737 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 09:03:06,737 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 09:03:06,738 - INFO - Scheduler started
+2026-06-11 12:08:57,065 - INFO - Scheduler has been shut down
+2026-06-11 12:08:59,899 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:09:00,317 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:09:00,333 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:09:00,334 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:09:00,334 - INFO - Scheduler started
+2026-06-11 12:09:07,105 - INFO - Scheduler has been shut down
+2026-06-11 12:09:08,257 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:09:08,330 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:09:08,346 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:09:08,346 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:09:08,346 - INFO - Scheduler started
+2026-06-11 12:09:14,209 - INFO - Scheduler has been shut down
+2026-06-11 12:09:15,271 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:09:15,353 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:09:15,369 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:09:15,369 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:09:15,369 - INFO - Scheduler started
+2026-06-11 12:18:33,064 - INFO - Scheduler has been shut down
+2026-06-11 12:18:34,457 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:18:34,598 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:18:34,614 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:18:34,614 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:18:34,614 - INFO - Scheduler started
+2026-06-11 12:18:42,415 - INFO - Scheduler has been shut down
+2026-06-11 12:18:43,773 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:18:43,870 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:18:43,886 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:18:43,886 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:18:43,886 - INFO - Scheduler started
+2026-06-11 12:19:47,497 - INFO - Scheduler has been shut down
+2026-06-11 12:19:48,646 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:19:48,734 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:19:48,749 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:19:48,750 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:19:48,750 - INFO - Scheduler started
+2026-06-11 12:20:28,063 - INFO - Scheduler has been shut down
+2026-06-11 12:20:29,218 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:20:29,304 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:20:29,320 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:20:29,320 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:20:29,321 - INFO - Scheduler started
+2026-06-11 12:21:48,422 - INFO - Scheduler has been shut down
+2026-06-11 12:21:49,604 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:21:49,693 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:21:49,711 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:21:49,711 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:21:49,712 - INFO - Scheduler started
+2026-06-11 12:27:51,128 - INFO - Scheduler has been shut down
+2026-06-11 12:27:52,527 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:27:52,739 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:27:52,756 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:27:52,756 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:27:52,756 - INFO - Scheduler started
+2026-06-11 12:27:59,334 - INFO - Scheduler has been shut down
+2026-06-11 12:28:00,436 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:28:00,521 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:28:00,539 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:28:00,539 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:28:00,539 - INFO - Scheduler started
+2026-06-11 12:29:45,494 - INFO - Scheduler has been shut down
+2026-06-11 12:29:46,648 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:29:46,744 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:29:46,760 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:29:46,761 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:29:46,761 - INFO - Scheduler started
+2026-06-11 12:29:49,388 - INFO - Scheduler has been shut down
+2026-06-11 12:29:50,369 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 12:29:50,454 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 12:29:50,465 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 12:29:50,466 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 12:29:50,466 - INFO - Scheduler started
+2026-06-11 21:26:03,143 - INFO - Scheduler has been shut down
+2026-06-11 21:26:04,557 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 21:26:04,926 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 21:26:04,942 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 21:26:04,942 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 21:26:04,942 - INFO - Scheduler started
+2026-06-11 21:26:17,063 - INFO - Scheduler has been shut down
+2026-06-11 21:26:18,147 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 21:26:18,226 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 21:26:18,240 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 21:26:18,240 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 21:26:18,240 - INFO - Scheduler started
+2026-06-11 21:37:44,696 - INFO - Scheduler has been shut down
+2026-06-11 21:37:46,050 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 21:37:46,266 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 21:37:46,281 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 21:37:46,281 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 21:37:46,281 - INFO - Scheduler started
+2026-06-11 21:40:22,336 - INFO - Scheduler has been shut down
+2026-06-11 21:40:23,652 - INFO - 🚀 SHS Backend Starting...
+2026-06-11 21:40:23,832 - INFO - ✅ Database ready and sequences synced.
+2026-06-11 21:40:23,848 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-11 21:40:23,848 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-11 21:40:23,848 - INFO - Scheduler started
+2026-06-12 09:47:07,740 - WARNING - Run time of job "perform_db_backup (trigger: cron[hour='2', minute='0'], next run at: 2026-06-13 02:00:00 CST)" was missed by 7:47:07.730301
+2026-06-14 09:36:47,334 - WARNING - Run time of job "perform_db_backup (trigger: cron[hour='2', minute='0'], next run at: 2026-06-15 02:00:00 CST)" was missed by 7:36:47.325695
+2026-06-29 15:25:40,650 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 15:25:40,969 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 15:25:40,986 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 15:25:40,986 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 15:25:40,986 - INFO - Scheduler started
+2026-06-29 15:42:12,826 - INFO - Scheduler has been shut down
+2026-06-29 15:43:25,950 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 15:43:26,036 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 15:43:26,051 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 15:43:26,051 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 15:43:26,052 - INFO - Scheduler started
+2026-06-29 15:44:29,719 - INFO - Scheduler has been shut down
+2026-06-29 15:44:31,126 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 15:44:31,362 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 15:44:31,378 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 15:44:31,378 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 15:44:31,378 - INFO - Scheduler started
+2026-06-29 15:51:27,707 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 15:51:27,849 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 15:51:27,868 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 15:51:27,868 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 15:51:27,868 - INFO - Scheduler started
+2026-06-29 15:51:54,118 - INFO - Scheduler has been shut down
+2026-06-29 15:51:55,370 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 15:51:55,579 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 15:51:55,605 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 15:51:55,606 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 15:51:55,606 - INFO - Scheduler started
+2026-06-29 16:00:29,651 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:00:29,777 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:00:29,796 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:00:29,796 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:00:29,796 - INFO - Scheduler started
+2026-06-29 16:04:00,600 - INFO - Scheduler has been shut down
+2026-06-29 16:04:02,090 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:04:02,366 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:04:02,384 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:04:02,384 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:04:02,384 - INFO - Scheduler started
+2026-06-29 16:10:07,005 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:10:07,086 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:10:07,099 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:10:07,100 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:10:07,100 - INFO - Scheduler started
+2026-06-29 16:10:31,761 - INFO - Starting legacy migration: Cleaning business tables...
+2026-06-29 16:12:50,469 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:12:50,588 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:12:50,610 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:12:50,611 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:12:50,611 - INFO - Scheduler started
+2026-06-29 16:13:23,974 - INFO - Scheduler has been shut down
+2026-06-29 16:13:35,373 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:13:35,434 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:13:35,448 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:13:35,448 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:13:35,448 - INFO - Scheduler started
+2026-06-29 16:14:03,429 - INFO - Starting legacy migration: Cleaning business tables...
+2026-06-29 16:18:41,485 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:18:41,611 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:18:41,635 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:18:41,635 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:18:41,635 - INFO - Scheduler started
+2026-06-29 16:19:11,645 - INFO - Starting legacy migration: Cleaning business tables...
+2026-06-29 16:24:11,298 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:24:11,567 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:24:11,584 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:24:11,584 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:24:11,584 - INFO - Scheduler started
+2026-06-29 16:24:44,176 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 16:24:44,211 - INFO - Legacy data cleaned gently.
+2026-06-29 16:24:44,248 - INFO - Migrating POS machines...
+2026-06-29 16:24:44,258 - INFO - Migrating customers...
+2026-06-29 16:24:44,363 - INFO - Migrating transaction logs (Batch mode)...
+2026-06-29 16:24:44,477 - INFO - Processed 500 transactions...
+2026-06-29 16:24:44,528 - INFO - Processed 1000 transactions...
+2026-06-29 16:24:44,567 - INFO - Processed 1500 transactions...
+2026-06-29 16:24:44,605 - INFO - Processed 2000 transactions...
+2026-06-29 16:24:44,641 - INFO - Transaction logs migration finished. Total: 2468
+2026-06-29 16:27:42,945 - INFO - Scheduler has been shut down
+2026-06-29 16:27:44,375 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:27:44,522 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:27:44,537 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:27:44,537 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:27:44,537 - INFO - Scheduler started
+2026-06-29 16:33:31,226 - INFO - Scheduler has been shut down
+2026-06-29 16:33:32,592 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:33:32,724 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:33:32,739 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:33:32,739 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:33:32,740 - INFO - Scheduler started
+2026-06-29 16:34:30,694 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 16:34:30,748 - INFO - Parsing regions from SQL file...
+2026-06-29 16:34:31,223 - INFO - Migrating POS machines...
+2026-06-29 16:34:31,226 - INFO - Migrating customers...
+2026-06-29 16:34:31,298 - INFO - Migrating transaction logs (Batch mode)...
+2026-06-29 16:34:31,392 - INFO - Processed 500 transactions...
+2026-06-29 16:34:31,419 - INFO - Processed 1000 transactions...
+2026-06-29 16:34:31,448 - INFO - Processed 1500 transactions...
+2026-06-29 16:34:31,480 - INFO - Processed 2000 transactions...
+2026-06-29 16:34:31,509 - INFO - Transaction logs migration finished. Total: 2468
+2026-06-29 16:37:06,952 - INFO - Scheduler has been shut down
+2026-06-29 16:37:08,338 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:37:08,503 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:37:08,524 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:37:08,524 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:37:08,524 - INFO - Scheduler started
+2026-06-29 16:40:39,438 - INFO - Scheduler has been shut down
+2026-06-29 16:40:48,257 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:40:49,073 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:40:49,122 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:40:49,123 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:40:49,123 - INFO - Scheduler started
+2026-06-29 16:43:16,360 - INFO - Scheduler has been shut down
+2026-06-29 16:43:17,843 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:43:17,988 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:43:18,003 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:43:18,003 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:43:18,003 - INFO - Scheduler started
+2026-06-29 16:43:58,309 - INFO - Starting legacy migration: Cleaning business tables...
+2026-06-29 16:43:58,414 - INFO - Using existing root region: QUEZELCO-1 (ID: 26)
+2026-06-29 16:43:58,415 - INFO - Parsing regions from SQL file...
+2026-06-29 16:43:58,906 - INFO - Migrating POS machines...
+2026-06-29 16:43:58,909 - INFO - Migrating customers...
+2026-06-29 16:43:58,983 - INFO - Migrating transaction logs (Batch mode)...
+2026-06-29 16:43:59,066 - INFO - Processed 500 transactions...
+2026-06-29 16:43:59,107 - INFO - Processed 1000 transactions...
+2026-06-29 16:43:59,137 - INFO - Processed 1500 transactions...
+2026-06-29 16:43:59,171 - INFO - Processed 2000 transactions...
+2026-06-29 16:43:59,201 - INFO - Processed 2500 transactions...
+2026-06-29 16:43:59,230 - INFO - Processed 3000 transactions...
+2026-06-29 16:43:59,301 - INFO - Processed 3500 transactions...
+2026-06-29 16:43:59,328 - INFO - Processed 4000 transactions...
+2026-06-29 16:43:59,358 - INFO - Processed 4500 transactions...
+2026-06-29 16:43:59,383 - INFO - Transaction logs migration finished. Total: 4877
+2026-06-29 16:46:05,798 - INFO - Scheduler has been shut down
+2026-06-29 16:46:07,752 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:46:07,859 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:46:07,888 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:46:07,889 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:46:07,889 - INFO - Scheduler started
+2026-06-29 16:51:43,689 - INFO - Scheduler has been shut down
+2026-06-29 16:51:45,431 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:51:45,607 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:51:45,630 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:51:45,630 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:51:45,630 - INFO - Scheduler started
+2026-06-29 16:53:10,062 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 16:53:10,205 - INFO - Parsing regions from SQL file...
+2026-06-29 16:53:10,762 - INFO - Migrating POS machines...
+2026-06-29 16:53:10,767 - INFO - Migrating customers...
+2026-06-29 16:53:10,848 - INFO - Migrating transaction logs...
+2026-06-29 16:53:11,280 - INFO - Transactions migrated: 4877
+2026-06-29 16:53:11,280 - INFO - Pruning unused regions...
+2026-06-29 16:53:11,390 - INFO - Pruning complete. Kept 41 active regions.
+2026-06-29 16:54:49,572 - INFO - Scheduler has been shut down
+2026-06-29 16:54:52,958 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:54:53,275 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:54:53,328 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:54:53,329 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:54:53,329 - INFO - Scheduler started
+2026-06-29 16:55:46,582 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 16:55:46,636 - INFO - Parsing regions from SQL file...
+2026-06-29 16:55:47,168 - INFO - Migrating POS machines...
+2026-06-29 16:55:47,172 - INFO - Migrating customers...
+2026-06-29 16:55:47,236 - INFO - Migrating transaction logs...
+2026-06-29 16:55:47,615 - INFO - Transactions migrated: 4877
+2026-06-29 16:55:47,615 - INFO - Pruning unused regions...
+2026-06-29 16:55:47,744 - INFO - Pruning complete. Kept 41 active regions.
+2026-06-29 16:56:54,335 - INFO - Scheduler has been shut down
+2026-06-29 16:56:55,716 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 16:56:55,854 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 16:56:55,869 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 16:56:55,869 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 16:56:55,870 - INFO - Scheduler started
+2026-06-29 16:57:31,960 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 16:57:32,010 - INFO - Parsing regions from SQL file (Flattening mode)...
+2026-06-29 16:57:32,497 - INFO - Migrating POS machines...
+2026-06-29 16:57:32,500 - INFO - Migrating customers...
+2026-06-29 16:57:32,567 - INFO - Migrating transaction logs...
+2026-06-29 16:57:32,936 - INFO - Pruning unused regions...
+2026-06-29 17:00:23,411 - INFO - Scheduler has been shut down
+2026-06-29 17:00:24,830 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:00:25,048 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:00:25,066 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:00:25,066 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:00:25,066 - INFO - Scheduler started
+2026-06-29 17:01:25,936 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 17:01:26,039 - INFO - Parsing regions from SQL file (Flattening mode)...
+2026-06-29 17:01:26,488 - INFO - Migrating POS machines...
+2026-06-29 17:01:26,492 - INFO - Migrating customers...
+2026-06-29 17:01:26,557 - INFO - Migrating transaction logs...
+2026-06-29 17:01:26,910 - INFO - Pruning unused regions...
+2026-06-29 17:02:53,493 - INFO - Scheduler has been shut down
+2026-06-29 17:02:54,919 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:02:55,095 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:02:55,110 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:02:55,110 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:02:55,110 - INFO - Scheduler started
+2026-06-29 17:05:54,415 - INFO - Scheduler has been shut down
+2026-06-29 17:05:55,798 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:05:56,016 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:05:56,042 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:05:56,042 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:05:56,042 - INFO - Scheduler started
+2026-06-29 17:08:26,509 - INFO - Scheduler has been shut down
+2026-06-29 17:08:27,968 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:08:28,149 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:08:28,164 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:08:28,164 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:08:28,164 - INFO - Scheduler started
+2026-06-29 17:09:44,757 - INFO - Scheduler has been shut down
+2026-06-29 17:09:46,394 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:09:46,618 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:09:46,637 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:09:46,637 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:09:46,637 - INFO - Scheduler started
+2026-06-29 17:10:10,282 - INFO - Scheduler has been shut down
+2026-06-29 17:15:38,311 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:15:38,870 - INFO - ⚠️ Superadmin account not found, created default.
+2026-06-29 17:15:38,897 - ERROR - ❌ Startup error: (psycopg2.errors.NotNullViolation) null value in column "mobile" of relation "users" violates not-null constraint
+DETAIL:  Failing row contains (2, superadmin, $2b$12$rqPmBKQG5QkZJjl0P4tsd.frhsSZw19GtCmgEE0N3.ulglY6V7WGy, 0, t, f, Supplier, null, Support, null, null, null, null, null, Pangasinan, 1, null, 2026-06-29 17:15:38.89471).
+
+[SQL: INSERT INTO users (username, password_hash, role, is_active, is_deleted, first_name, middle_name, last_name, mobile, landline, email, ice_name, ice_phone, province, region_id, address, created_at) VALUES (%(username)s, %(password_hash)s, %(role)s, %(is_active)s, %(is_deleted)s, %(first_name)s, %(middle_name)s, %(last_name)s, %(mobile)s, %(landline)s, %(email)s, %(ice_name)s, %(ice_phone)s, %(province)s, %(region_id)s, %(address)s, %(created_at)s) RETURNING users.id]
+[parameters: {'username': 'superadmin', 'password_hash': '$2b$12$rqPmBKQG5QkZJjl0P4tsd.frhsSZw19GtCmgEE0N3.ulglY6V7WGy', 'role': 0, 'is_active': True, 'is_deleted': False, 'first_name': 'Supplier', 'middle_name': None, 'last_name': 'Support', 'mobile': None, 'landline': None, 'email': None, 'ice_name': None, 'ice_phone': None, 'province': 'Pangasinan', 'region_id': 1, 'address': None, 'created_at': datetime.datetime(2026, 6, 29, 17, 15, 38, 894710)}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2026-06-29 17:15:38,915 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:15:38,915 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:15:38,915 - INFO - Scheduler started
+2026-06-29 17:18:48,303 - INFO - Scheduler has been shut down
+2026-06-29 17:18:49,745 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:18:50,175 - INFO - ⚠️ Superadmin account not found, created default.
+2026-06-29 17:18:50,199 - ERROR - ❌ Startup error: (psycopg2.errors.NotNullViolation) null value in column "mobile" of relation "users" violates not-null constraint
+DETAIL:  Failing row contains (2, superadmin, $2b$12$mDXxZZRxozMuAct3VSicDOeGmHp3dJnWnw9O0RT3PD0pZujmWPLlq, 0, t, f, Supplier, null, Support, null, null, null, null, null, Pangasinan, 2, null, 2026-06-29 17:18:50.198483).
+
+[SQL: INSERT INTO users (username, password_hash, role, is_active, is_deleted, first_name, middle_name, last_name, mobile, landline, email, ice_name, ice_phone, province, region_id, address, created_at) VALUES (%(username)s, %(password_hash)s, %(role)s, %(is_active)s, %(is_deleted)s, %(first_name)s, %(middle_name)s, %(last_name)s, %(mobile)s, %(landline)s, %(email)s, %(ice_name)s, %(ice_phone)s, %(province)s, %(region_id)s, %(address)s, %(created_at)s) RETURNING users.id]
+[parameters: {'username': 'superadmin', 'password_hash': '$2b$12$mDXxZZRxozMuAct3VSicDOeGmHp3dJnWnw9O0RT3PD0pZujmWPLlq', 'role': 0, 'is_active': True, 'is_deleted': False, 'first_name': 'Supplier', 'middle_name': None, 'last_name': 'Support', 'mobile': None, 'landline': None, 'email': None, 'ice_name': None, 'ice_phone': None, 'province': 'Pangasinan', 'region_id': 2, 'address': None, 'created_at': datetime.datetime(2026, 6, 29, 17, 18, 50, 198483)}]
+(Background on this error at: https://sqlalche.me/e/20/gkpj)
+2026-06-29 17:18:50,215 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:18:50,215 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:18:50,215 - INFO - Scheduler started
+2026-06-29 17:19:39,101 - INFO - Scheduler has been shut down
+2026-06-29 17:19:56,809 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:19:57,247 - INFO - ⚠️ Superadmin account not found, created default.
+2026-06-29 17:19:57,272 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:19:57,285 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:19:57,285 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:19:57,285 - INFO - Scheduler started
+2026-06-29 17:24:06,356 - INFO - Scheduler has been shut down
+2026-06-29 17:30:29,855 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:30:30,208 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:30:30,236 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:30:30,236 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:30:30,237 - INFO - Scheduler started
+2026-06-29 17:31:35,055 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:31:35,114 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:31:35,126 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:31:35,127 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:31:35,127 - INFO - Scheduler started
+2026-06-29 17:33:08,718 - INFO - Scheduler has been shut down
+2026-06-29 17:33:10,180 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:33:10,385 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:33:10,400 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:33:10,401 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:33:10,401 - INFO - Scheduler started
+2026-06-29 17:34:32,107 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:34:32,183 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:34:32,196 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:34:32,196 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:34:32,196 - INFO - Scheduler started
+2026-06-29 17:36:31,528 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:36:31,606 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:36:31,619 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:36:31,620 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:36:31,620 - INFO - Scheduler started
+2026-06-29 17:38:53,779 - INFO - Scheduler has been shut down
+2026-06-29 17:38:55,280 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:38:55,427 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:38:55,443 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:38:55,443 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:38:55,443 - INFO - Scheduler started
+2026-06-29 17:40:36,698 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:40:36,820 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:40:36,835 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:40:36,836 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:40:36,836 - INFO - Scheduler started
+2026-06-29 17:40:54,731 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:40:54,788 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:40:54,802 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:40:54,802 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:40:54,802 - INFO - Scheduler started
+2026-06-29 17:42:06,602 - INFO - Scheduler has been shut down
+2026-06-29 17:42:08,689 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:42:08,814 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:42:08,843 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:42:08,843 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:42:08,843 - INFO - Scheduler started
+2026-06-29 17:50:22,200 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:50:22,271 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:50:22,288 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:50:22,288 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:50:22,288 - INFO - Scheduler started
+2026-06-29 17:52:31,702 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:52:31,764 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:52:31,777 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:52:31,777 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:52:31,777 - INFO - Scheduler started
+2026-06-29 17:56:54,768 - INFO - Scheduler has been shut down
+2026-06-29 17:56:56,091 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 17:56:56,306 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 17:56:56,327 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 17:56:56,327 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 17:56:56,327 - INFO - Scheduler started
+2026-06-29 18:32:16,521 - INFO - Starting legacy migration: Gentle data cleaning...
+2026-06-29 18:32:16,574 - INFO - Loaded 24 existing manual regions for matching.
+2026-06-29 18:32:16,574 - INFO - Migrating POS machines...
+2026-06-29 18:32:16,589 - INFO - Migrating customers...
+2026-06-29 18:32:16,698 - INFO - Migrating transaction logs...
+2026-06-29 18:32:16,924 - INFO - Transactions finished: 2468
+2026-06-29 18:35:04,353 - INFO - Scheduler has been shut down
+2026-06-29 18:35:05,733 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 18:35:05,853 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 18:35:05,875 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 18:35:05,876 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 18:35:05,876 - INFO - Scheduler started
+2026-06-29 18:41:49,071 - INFO - Scheduler has been shut down
+2026-06-29 18:41:50,454 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 18:41:50,691 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 18:41:50,708 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 18:41:50,708 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 18:41:50,709 - INFO - Scheduler started
+2026-06-29 23:37:12,252 - INFO - Starting legacy migration: Cleaning and patching...
+2026-06-29 23:39:07,770 - INFO - 🚀 SHS Backend Starting...
+2026-06-29 23:39:07,894 - INFO - ✅ Database ready and sequences synced.
+2026-06-29 23:39:07,909 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-29 23:39:07,909 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-29 23:39:07,909 - INFO - Scheduler started
+2026-06-30 10:27:37,255 - INFO - 🚀 SHS Backend Starting...
+2026-06-30 10:27:37,329 - INFO - ✅ Database ready and sequences synced.
+2026-06-30 10:27:37,343 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-30 10:27:37,343 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-30 10:27:37,343 - INFO - Scheduler started
+2026-06-30 10:28:41,465 - INFO - Starting legacy migration: Cleaning and patching...
+2026-06-30 11:39:10,415 - INFO - Scheduler has been shut down
+2026-06-30 11:39:13,702 - INFO - 🚀 SHS Backend Starting...
+2026-06-30 11:39:14,892 - INFO - ✅ Database ready and sequences synced.
+2026-06-30 11:39:15,030 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-06-30 11:39:15,031 - INFO - Added job "perform_db_backup" to job store "default"
+2026-06-30 11:39:15,031 - INFO - Scheduler started

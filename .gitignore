@@ -29,6 +29,7 @@ static/uploads/
 
 # Data dumps
 production_data.json
+mysqlexport/
 
 # Build scripts
 build_and_push.sh

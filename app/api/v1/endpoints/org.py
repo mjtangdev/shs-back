@@ -26,23 +26,42 @@ def update_region_rate(
 ):
     """
     修改特定地区的费率 - 仅限财务或管理员。
-    通过 Body 传递 region_id，前端无需拼接 URL。
+    【重要更新】现在修改父级费率会同步更新该区域下所有的子级区域（如 Barangay -> Purok）。
     """
     region = db.query(Region).filter(Region.id == region_id).first()
     if not region:
         raise HTTPException(status_code=404, detail="Region not found")
 
     try:
-        # 强制控制在小数点后两位并转为 Decimal
-        region.daily_rate = Decimal(str(round(new_rate, 2)))
-        region.last_rate_updated_at = datetime.now()
+        now = datetime.now()
+        rate_dec = Decimal(str(round(new_rate, 2)))
+
+        # 1. 更新当前区域
+        region.daily_rate = rate_dec
+        region.last_rate_updated_at = now
         region.last_rate_modified_by_id = current_user.id
         
+        # 2. 级联同步更新子孙区域 (向下穿透)
+        # 找到所有直接下属 (如 Barangay)
+        child_ids = [r.id for r in db.query(Region.id).filter(Region.parent_id == region_id).all()]
+        if child_ids:
+            # 找到所有孙子下属 (如 Purok)
+            grandchild_ids = [r.id for r in db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()]
+            all_descendant_ids = child_ids + grandchild_ids
+
+            # 批量执行同步更新
+            db.query(Region).filter(Region.id.in_(all_descendant_ids)).update({
+                Region.daily_rate: rate_dec,
+                Region.last_rate_updated_at: now,
+                Region.last_rate_modified_by_id: current_user.id
+            }, synchronize_session=False)
+
         db.commit()
         return {
             "status": "success", 
             "region_name": region.name, 
-            "new_rate": float(region.daily_rate)
+            "new_rate": float(region.daily_rate),
+            "cascade_updated": True
         }
     except Exception as e:
         db.rollback()

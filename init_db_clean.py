@@ -40,13 +40,13 @@ def init_db_clean():
 
         # 3. 创建超级管理员 (Role 0)
         db.add(User(
-            username="sysadmin",
+            username="superadmin",
             password_hash=hash_password("Supplier_Secure_Pwd_2026"),
             first_name="Supplier", last_name="Support",
             role=0, mobile="1111111111", region_id=root_region.id,
             is_active=True
         ))
-        print("✅ 已创建超级管理员: sysadmin")
+        print("✅ 已创建超级管理员: superadmin")
 
         # 4. 创建系统管理员 (Role 1)
         db.add(User(

@@ -14,12 +14,12 @@ class User(Base):
     is_deleted = Column(Boolean, default=False, index=True)
     
     # 个人信息
-    first_name = Column(String, nullable=False)
+    first_name = Column(String, nullable=True)
     middle_name = Column(String, nullable=True)
-    last_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=True)
     
     # 联系方式
-    mobile = Column(String, nullable=False)
+    mobile = Column(String, nullable=True)
     landline = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=True)
     

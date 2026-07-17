@@ -157,7 +157,46 @@ def update_customer(
     db.commit()
     return {"status": "success"}
 
-# --- 4. 获取详情 (补全此接口以修复 405 错误) ---
+# --- 4. 辅助工具 (Excel 导出与模板) ---
+@router.get("/export")
+def export_customers(
+    db: Session = Depends(deps.get_db),
+    region_id: Optional[int] = Query(None),
+    current_user: Any = Depends(deps.get_finance_or_admin)
+):
+    # 此处依赖 get_finance_or_admin，确保已从 deps 导入
+    query = db.query(Customer).options(selectinload(Customer.solar_units), selectinload(Customer.cards))
+    customers = query.all()
+    df = pd.DataFrame([{"ID": c.uuid, "Name": f"{c.first_name} {c.last_name}", "Mobile": c.mobile} for c in customers])
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False)
+    output.seek(0)
+    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+@router.get("/import-template")
+def get_customer_import_template(
+    current_user: Any = Depends(deps.get_current_user)
+):
+    """获取客户导入 Excel 模板"""
+    df = pd.DataFrame(columns=[
+        "first_name", "last_name", "gender", "mobile",
+        "email", "address", "region_id"
+    ])
+    # 示例数据
+    df.loc[0] = ["John", "Doe", "male", "123456789", "john@example.com", "Main St 123", 1]
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Template')
+
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=customer_import_template.xlsx"}
+    )
+
+# --- 5. 获取详情 ---
 @router.get("/{customer_id}")
 def get_customer_detail(
     customer_id: int,
@@ -193,18 +232,3 @@ def get_customer_detail(
         "cards": cards, "solar_units": solar_units, "recent_transactions": recent_transactions
     }
 
-# --- 5. 导出 Excel ---
-@router.get("/export")
-def export_customers(
-    db: Session = Depends(deps.get_db),
-    region_id: Optional[int] = Query(None),
-    current_user: Any = Depends(deps.get_finance_or_admin)
-):
-    # 此处依赖 get_finance_or_admin，确保已从 deps 导入
-    query = db.query(Customer).options(selectinload(Customer.solar_units), selectinload(Customer.cards))
-    customers = query.all()
-    df = pd.DataFrame([{"ID": c.uuid, "Name": f"{c.first_name} {c.last_name}", "Mobile": c.mobile} for c in customers])
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False)
-    output.seek(0)
-    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")

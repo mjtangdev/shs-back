@@ -1,31 +1,44 @@
 # --- 第一阶段：构建环境 ---
-FROM python:3.12.7-slim AS builder
+FROM docker.m.daocloud.io/library/python:3.12.7-slim AS builder
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# 安装编译依赖 (针对不同架构自动适配)
-RUN apt-get update && apt-get install -y \
+# 彻底替换 APT 源为清华大学镜像 (Tuna)
+# 1. 删除新版的 .sources 文件 2. 写入旧版的 sources.list 格式
+RUN set -ex; \
+    rm -f /etc/apt/sources.list.d/debian.sources; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-# 构建 Wheel 包，包含所有依赖项（移除 --no-deps 以确保包含 sqlalchemy 等所需的 greenlet）
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt
+# 构建 Wheel 包，使用清华源
+RUN pip install --no-cache-dir --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple && \
+    pip wheel --no-cache-dir --wheel-dir /app/wheels -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 
 # --- 第二阶段：运行环境 ---
-FROM python:3.12.7-slim
+FROM docker.m.daocloud.io/library/python:3.12.7-slim
 
 WORKDIR /app
 
-# 只安装运行时的基础库
-RUN apt-get update && apt-get install -y \
+# 同样彻底替换 APT 源
+RUN set -ex; \
+    rm -f /etc/apt/sources.list.d/debian.sources; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    echo "deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list; \
+    apt-get update && apt-get install -y \
     libpq5 \
     curl \
     postgresql-client \

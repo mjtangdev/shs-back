@@ -10,6 +10,30 @@ docker-compose.yml
 alembic/
 *.pyc
 
-# Exclude build scripts
+# Exclude build and dev scripts from the Docker image
 build_and_push.sh
 build_and_push.bat
+build_local.sh
+start_dev.sh
+reset_db.sh
+reset_business_db.sh
+deploy_and_seed.sh
+
+# Standalone utility scripts: EXCLUDE from Docker (keeping them local only)
+init_db.py
+reinit_db.py
+data_migration.py
+fix_sequences.py
+dump_db_to_json.py
+seed.py
+seed_mj_test.py
+seed_demo_data.py
+seed_large_data.py
+test_migration_zip.py
+reset_standard_structure.py
+init_db_clean.py
+
+# Standalone utility scripts: INCLUDE in Docker (as requested)
+# migrate_real_data.py
+# seed_production_data.py
+# (We don't list them above so Docker will include them)

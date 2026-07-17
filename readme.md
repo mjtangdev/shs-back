@@ -88,7 +88,7 @@ docker-compose up -d db
 
 | Role / 角色 | Username / 用户名 | Password / 密码 | Description / 说明 |
 | :--- | :--- | :--- | :--- |
-| **Super Admin** | `sysadmin` | `Supplier_Secure_Pwd_2026` | Vendor support / 供应商支持 |
+| **Super Admin** | `superadmin` | `Supplier_Secure_Pwd_2026` | Vendor support / 供应商支持 |
 | **Admin** | `admin` | `admin123` | System management / 系统管理 |
 | **Operator** | `opera` | `test123` | POS login / 业务员登录 |
 | **Management** | `manager` | `test123` | Dashboard / 管理层看板 |

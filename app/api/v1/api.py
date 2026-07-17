@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 from app.api.v1.endpoints import (
     hello, users, login, org, customer, card, 
-    pos, solar_device, provider, apk, 
-    pos_sync, finance, pos_terminal, dashboard
+    pos, solar_device, provider,
+    pos_sync, finance, pos_terminal, dashboard,
+    maintenance
 )
 
 api_router = APIRouter()
@@ -28,5 +29,5 @@ api_router.include_router(pos_sync.router, prefix="/pos-sync", tags=["POS Sync"]
 
 # 系统配置与财务
 api_router.include_router(provider.router, prefix="/provider", tags=["Provider Config"])
-api_router.include_router(apk.router, prefix="/apk", tags=["APK Management"])
 api_router.include_router(finance.router, prefix="/finance", tags=["Finance Management"])
+api_router.include_router(maintenance.router, prefix="/maintenance", tags=["System Maintenance"])

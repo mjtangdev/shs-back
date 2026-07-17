@@ -133,56 +133,62 @@ def read_user_by_id(
     return enrich_user_response(db, user)
 
 # --- 3. 更新用户 ---
-@router.patch("/update", response_model=UserRead)
-@router.patch("/{user_id}", response_model=UserRead)
-def update_user(
-    user_in: UserUpdate,
-    user_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    current_admin: User = Depends(get_current_admin_user)
-):
-    """更新用户信息 - 同时支持路径参数和 Body 传参"""
-    final_id = user_id or getattr(user_in, "user_id", None)
-    if not final_id:
-        raise HTTPException(status_code=400, detail="User ID is required")
-
-    db_user = db.query(User).filter(User.id == final_id, User.is_deleted == False).first()
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def _perform_user_update(db: Session, db_user: User, user_in: UserUpdate, current_admin: User):
+    """内部通用的用户更新逻辑"""
     # 权限保护：禁止修改同级或更高级别的账号
     if db_user.role <= current_admin.role and db_user.id != current_admin.id and current_admin.role != 0:
         raise HTTPException(status_code=403, detail="Permission denied: Cannot modify a higher-level account")
 
     update_data = user_in.model_dump(exclude_unset=True)
+    update_data.pop("user_id", None) # ID 已在外部提取，此处移除防止干扰
 
-    # 更新时检查 region_id 是否存在
     if "region_id" in update_data:
         rid = update_data["region_id"]
         if rid is not None and rid != 0:
             region = db.query(Region).filter(Region.id == rid).first()
-            if not region:
-                raise HTTPException(status_code=404, detail="Assigned region not found")
-            
-            # 核心逻辑：业务员 (Role 2) 必须且只能分配到第三层级 (Purok, level=2)
+            if not region: raise HTTPException(status_code=404, detail="Region not found")
             target_role = update_data.get("role", db_user.role)
-            if target_role == 2:
-                if region.level != 2:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Invalid Assignment: Operators must be assigned to a Purok (Level 3). Selected region '{region.name}' is at level {region.level + 1}."
-                    )
+            if target_role == 2 and region.level != 2:
+                raise HTTPException(status_code=400, detail="Operators must be assigned to a Purok")
 
     if "password" in update_data:
         pw = update_data.pop("password")
-        db_user.password_hash = hash_password(pw)
+        if pw and pw.strip():
+            if pw == "admin123":
+                 raise HTTPException(status_code=400, detail="Cannot use default password")
+            db_user.password_hash = hash_password(pw)
 
     for field, value in update_data.items():
-        setattr(db_user, field, value)
+        if hasattr(db_user, field): setattr(db_user, field, value)
 
     db.commit()
     db.refresh(db_user)
-    return enrich_user_response(db, db_user)
+    return db_user
+
+@router.patch("/update", response_model=UserRead)
+def update_user_body(
+    user_in: UserUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """更新用户 (通过 Body 传 ID)"""
+    db_user = db.query(User).filter(User.id == user_in.user_id, User.is_deleted == False).first()
+    if not db_user: raise HTTPException(status_code=404, detail="User not found")
+    updated = _perform_user_update(db, db_user, user_in, current_admin)
+    return enrich_user_response(db, updated)
+
+@router.patch("/{user_id}", response_model=UserRead)
+def update_user_path(
+    user_id: int,
+    user_in: UserUpdate,
+    db: Session = Depends(get_db),
+    current_admin: User = Depends(get_current_admin_user)
+):
+    """更新用户 (通过路径传 ID)"""
+    db_user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    if not db_user: raise HTTPException(status_code=404, detail="User not found")
+    updated = _perform_user_update(db, db_user, user_in, current_admin)
+    return enrich_user_response(db, updated)
 
 # --- 4. 删除用户 ---
 @router.delete("/delete")
@@ -228,25 +234,22 @@ def delete_user(
 # --- 5. 用户修改自己的密码 ---
 @router.patch("/me/change-password")
 def change_my_password(
-    new_password: str = Body(..., embed=True), # 通过请求体获取新密码，`embed=True` 表示直接从 JSON 根部解析
-    db: Session = Depends(get_db), # 数据库会话依赖
-    current_user: User = Depends(get_current_user) # 当前登录用户依赖，确保用户已认证
+    password: str = Body(None, embed=True), # 兼容通用字段名
+    new_password: str = Body(None, embed=True), # 兼容当前参数名
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     允许任何已登录用户修改自己的密码。
-    这个接口主要用于：
-    1. 用户首次登录时被强制修改默认密码。
-    2. 用户主动修改自己的密码。
+    支持 'password' 或 'new_password' 字段名。
     """
-    
-    # 检查新密码是否仍为初始默认密码 "admin123"
-    # 这是一个重要的安全措施，强制用户设置更复杂的密码
-    if new_password == "admin123":
+    final_password = new_password or password
+    if not final_password:
+        raise HTTPException(status_code=400, detail="New password is required")
+
+    if final_password == "admin123":
         raise HTTPException(status_code=400, detail="Cannot use default password, please set a more complex password")
-    
-    # 对新密码进行哈希处理
-    current_user.password_hash = hash_password(new_password)
-    
-    # 提交数据库更改并返回成功信息
+
+    current_user.password_hash = hash_password(final_password)
     db.commit()
     return {"status": "success", "message": "Password updated successfully"}

@@ -16,7 +16,7 @@ from app.models.config import ProviderConfig
 from app.core.auth_utils import hash_password
 
 # SQL 文件路径
-SQL_PATH = "/Users/michael/dev/shs/mysqlexport"
+SQL_PATH = os.path.join(os.path.dirname(__file__), "mysqlexport")
 
 def parse_sql_values(file_name):
     full_path = os.path.join(SQL_PATH, file_name)
@@ -48,9 +48,8 @@ def migrate():
             db.execute(text(f"DROP TABLE IF EXISTS {table.name} CASCADE"))
         db.commit()
         Base.metadata.create_all(bind=engine)
-        
+
         # 修正：将卡号的唯一索引改为“部分唯一索引”(Partial Unique Index)
-        # 从而允许多张卡片的 card_number 都为 "" (空字符串) 而不触发唯一约束冲突
         try:
             db.execute(text('DROP INDEX IF EXISTS "ix_cards_card_number" CASCADE;'))
             db.execute(text('ALTER TABLE cards DROP CONSTRAINT IF EXISTS cards_card_number_key CASCADE;'))
@@ -64,7 +63,7 @@ def migrate():
         root = Region(name="QUEZELCO-1", level=0)
         db.add(root); db.flush()
         db.add(ProviderConfig(name="QUEZELCO-1 SHS", tin="12345678", is_initialized=True))
-        
+
         mapping = {
             "Tagkawayan": ["Del Gallego", "Guinyangan", "Calauag", "Lopez"],
             "Gumaca": ["Plaridel", "Atimonan"],
@@ -84,13 +83,12 @@ def migrate():
                 db.add(b_node); db.flush()
                 region_cache[b_name.lower()] = b_node.id
 
-        # 2. 迁移 POS 资产 (核心新增)
+        # 2. 迁移 POS 资产
         print("Step 2: 导入 POS 机资产底账...")
         pos_raw = parse_sql_values("shsv1_ic_dev_pos.sql")
         pos_count = 0
         for row in pos_raw:
             try:
-                # 3: terminal_serial (SN), 5: active
                 sn = row[3]
                 if not sn or sn == "NULL": continue
                 status = 1 if row[5] == '1' else 0
@@ -99,11 +97,11 @@ def migrate():
             except: continue
         db.flush()
 
-        # 3. 迁移客户并建立 ID 转换桥梁
+        # 3. 迁移客户
         print("Step 3: 迁移客户资料...")
-        id_bridge = {} 
+        id_bridge = {}
         clients_raw = parse_sql_values("shsv1_ic_clients.sql")
-        customer_map = {} 
+        customer_map = {}
         for row in clients_raw:
             try:
                 long_id, c_uuid = row[0], row[2]
@@ -160,14 +158,12 @@ def migrate():
                 ))
 
         # 6. 迁移卡片
-        print("Step 6: 同步 IC 卡库 (强制留空逻辑卡号)...")
+        print("Step 6: 同步 IC 卡库...")
         master_cards = {}
         cards_pool_raw = parse_sql_values("shsv1_ic_dev_card.sql")
         for row in cards_pool_raw:
             try:
-                # 2: card_uuid (物理 UID)
                 u_id = row[2].upper()
-                # 根源解决：直接将没有实体卡号的设为 ""
                 c_obj = Card(card_uuid=u_id, card_number="", status=0, created_at=datetime.now())
                 db.add(c_obj)
                 master_cards[u_id] = c_obj
@@ -190,12 +186,13 @@ def migrate():
 
         # 7. 初始化管理账号
         print("Step 7: 初始化系统账号...")
+        db.add(User(username="superadmin", password_hash=hash_password("Supplier_Secure_Pwd_2026"), role=0, mobile="1111111111", first_name="Supplier", last_name="Support"))
         db.add(User(username="admin", password_hash=hash_password("admin123"), role=1, mobile="09111111111", first_name="System", last_name="Admin"))
         db.add(User(username="fina", password_hash=hash_password("test123"), role=3, mobile="09222222222", first_name="Finance", last_name="Manager"))
 
         db.commit()
-        
-        # 8. 核心增强：同步所有表的发号器 (一劳永逸)
+
+        # 8. 同步序列
         print("Step 8: 正在强制同步数据库发号器...")
         tables = ["users", "customers", "cards", "solar_units", "transaction_logs", "regions", "pos_machines"]
         for table in tables:
@@ -203,11 +200,10 @@ def migrate():
                 seq = db.execute(text(f"SELECT pg_get_serial_sequence('{table}', 'id')")).scalar()
                 if seq:
                     db.execute(text(f"SELECT setval('{seq}', COALESCE((SELECT MAX(id) FROM {table}), 1), true)"))
-                    print(f"   - {table} 序列已归位")
             except: pass
         db.commit()
 
-        print(f"\n🎉 迁移大功告成！已成功导入 {pos_count} 台 POS 机资产。")
+        print(f"\n🎉 迁移大功告成！")
 
     except Exception as e:
         db.rollback()
