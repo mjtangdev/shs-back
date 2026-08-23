@@ -95,7 +95,8 @@ def get_cards(
 def create_card(db: Session = Depends(get_db), card_in: CardCreate = None, current_user: Any = Depends(get_finance_or_admin)):
     # Enforce uppercase for UUID
     card_in.card_uuid = card_in.card_uuid.strip().upper()
-    card_in.card_number = (card_in.card_number or "").strip()
+    # 核心修复：如果卡号为空字符串，转为 None (NULL)，避免违反唯一约束
+    card_in.card_number = (card_in.card_number or "").strip() or None
 
     # 查重逻辑：只有在提供了非空实体卡号时，才校验卡号重复
     filters = [Card.card_uuid == card_in.card_uuid]
@@ -159,12 +160,13 @@ async def import_cards(
             continue
         
         # 只有在提供了卡号且卡号重复时才跳过
-        if n and n in exist_nums:
+        real_card_number = n if n else None
+        if real_card_number and real_card_number in exist_nums:
             skipped.append(f"Row {idx+2}: Duplicate Card Number")
             continue
 
-        batch.append(Card(card_number=n, card_uuid=u, status=0, created_at=datetime.now()))
-        if n: exist_nums.add(n)
+        batch.append(Card(card_number=real_card_number, card_uuid=u, status=0, created_at=datetime.now()))
+        if real_card_number: exist_nums.add(real_card_number)
         exist_uuids.add(u)
 
     if batch:

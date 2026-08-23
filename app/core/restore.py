@@ -1,15 +1,16 @@
 import os
 import json
 import logging
+import time
 from datetime import datetime
 from sqlalchemy import text
-from app.db.session import SessionLocal
+from app.db.session import SessionLocal, engine
 from app.db.base_class import Base
 from app.models.users import User
-from app.models.org import Region
+from app.models.org import Region, BusinessEntity
 from app.models.customer import Customer
 from app.models.card import Card
-from app.models.pos import POSMachine
+from app.models.pos import POSMachine, POSActionLog
 from app.models.config import ProviderConfig
 from app.models.solar_device import SolarUnit
 from app.models.transaction import TransactionLog
@@ -19,9 +20,10 @@ logger = logging.getLogger(__name__)
 def perform_db_restore(json_content: dict = None, json_file_path: str = "production_data.json"):
     """
     从 JSON 数据恢复/同步数据库
-    :param json_content: 直接传入 JSON 字典内容（优先级高）
-    :param json_file_path: 如果 content 为空，则从文件读取
     """
+    logger.info("⏳ Waiting 2 seconds for existing API sessions to close...")
+    time.sleep(2) # 👈 关键：给 API 线程留出释放数据库锁的时间
+
     db = SessionLocal()
     try:
         if not json_content:
@@ -32,16 +34,29 @@ def perform_db_restore(json_content: dict = None, json_file_path: str = "product
 
         logger.info("🚀 Starting database restore from JSON...")
 
-        # 1. 清理业务数据
-        # [全量重置] 包含 users 表，确保云端环境与本地准备好的迁移数据完全一致
-        tables = ["transaction_logs", "cards", "solar_units", "pos_machines", "customers", "users", "configs", "regions"]
-        for table in tables:
-            db.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
+        # 0. 设置锁等待超时，防止永久卡死
+        db.execute(text("SET lock_timeout = '10s'"))
         db.commit()
 
-        # 2. 恢复 Region
+        # 1. 清理业务数据
+        tables = [
+            "transaction_logs", "cards", "solar_units", "pos_action_logs", 
+            "pos_machines", "customers", "business_entities", "users", 
+            "provider_configs", "regions"
+        ]
+        for table in tables:
+            logger.info(f"🧹 Truncating table: {table}...")
+            # CASCADE 会自动处理外键关联
+            db.execute(text(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE"))
+        db.commit()
+        logger.info("✅ All tables cleared.")
+
+        # 2. 恢复 Region (按 level 排序确保父级先插入)
         if "regions" in json_content:
-            for r in json_content["regions"]:
+            regions = json_content["regions"]
+            # 简单排序：level 0 -> 1 -> 2
+            regions.sort(key=lambda x: x.get('level', 0))
+            for r in regions:
                 db.execute(text("INSERT INTO regions (id, name, level, parent_id, daily_rate) VALUES (:id, :name, :level, :parent_id, :daily_rate) ON CONFLICT (id) DO NOTHING"), r)
             db.commit()
 
@@ -49,15 +64,18 @@ def perform_db_restore(json_content: dict = None, json_file_path: str = "product
         if "configs" in json_content:
             for c in json_content["configs"]:
                 db.add(ProviderConfig(**c))
+        db.flush()
 
         # 4. 恢复 Users
         if "users" in json_content:
+            user_list = []
             for u in json_content["users"]:
                 if u.get('created_at'): u['created_at'] = datetime.fromisoformat(u['created_at'])
-                db.add(User(**u))
+                user_list.append(u)
+            db.bulk_insert_mappings(User, user_list)
         db.flush()
 
-        # [安全兜底] 检查关键账号是否存在，如果 JSON 里没带，则强制补全
+        # [安全兜底] 检查关键账号是否存在
         from app.core.auth_utils import hash_password
         existing_usernames = [r[0] for r in db.execute(text("SELECT username FROM users")).fetchall()]
 
@@ -75,42 +93,65 @@ def perform_db_restore(json_content: dict = None, json_file_path: str = "product
             ))
         db.commit()
 
-        # 5. 恢复 Customers
+        # 5. 恢复 Business Entities
+        if "business_entities" in json_content:
+            for b in json_content["business_entities"]:
+                db.add(BusinessEntity(**b))
+            db.commit()
+
+        # 6. 恢复 Customers (批量)
         if "customers" in json_content:
+            cust_list = []
             for c in json_content["customers"]:
                 if c.get('created_at'): c['created_at'] = datetime.fromisoformat(c['created_at'])
                 if c.get('expiry_time'): c['expiry_time'] = datetime.fromisoformat(c['expiry_time'])
-                db.add(Customer(**c))
+                cust_list.append(c)
+            db.bulk_insert_mappings(Customer, cust_list)
         db.flush()
 
-        # 6. 恢复 Assets (Cards, SolarUnits, POS)
+        # 7. 恢复 Assets (批量)
         if "cards" in json_content:
+            card_list = []
             for c in json_content["cards"]:
                 if c.get('created_at'): c['created_at'] = datetime.fromisoformat(c['created_at'])
                 if c.get('bound_at'): c['bound_at'] = datetime.fromisoformat(c['bound_at'])
-                db.add(Card(**c))
+                card_list.append(c)
+            db.bulk_insert_mappings(Card, card_list)
 
         if "solar_units" in json_content:
+            unit_list = []
             for s in json_content["solar_units"]:
                 if s.get('created_at'): s['created_at'] = datetime.fromisoformat(s['created_at'])
                 if s.get('bound_at'): s['bound_at'] = datetime.fromisoformat(s['bound_at'])
                 if s.get('production_date'): s['production_date'] = datetime.fromisoformat(s['production_date'])
-                db.add(SolarUnit(**s))
+                unit_list.append(s)
+            db.bulk_insert_mappings(SolarUnit, unit_list)
 
         if "pos_machines" in json_content:
+            pos_list = []
             for p in json_content["pos_machines"]:
                 if p.get('created_at'): p['created_at'] = datetime.fromisoformat(p['created_at'])
                 if p.get('last_login_at'): p['last_login_at'] = datetime.fromisoformat(p['last_login_at'])
                 if p.get('reconciliation_deadline'): p['reconciliation_deadline'] = datetime.fromisoformat(p['reconciliation_deadline'])
                 if p.get('last_reconciliation_at'): p['last_reconciliation_at'] = datetime.fromisoformat(p['last_reconciliation_at'])
-                db.add(POSMachine(**p))
+                pos_list.append(p)
+            db.bulk_insert_mappings(POSMachine, pos_list)
 
-        # 7. 恢复 Transactions
+        if "pos_action_logs" in json_content:
+            log_list = []
+            for l in json_content["pos_action_logs"]:
+                if l.get('timestamp'): l['timestamp'] = datetime.fromisoformat(l['timestamp'])
+                log_list.append(l)
+            db.bulk_insert_mappings(POSActionLog, log_list)
+
+        # 8. 恢复 Transactions (批量)
         if "transactions" in json_content:
+            tx_list = []
             for t in json_content["transactions"]:
                 if t.get('transaction_time'): t['transaction_time'] = datetime.fromisoformat(t['transaction_time'])
                 if t.get('created_at'): t['created_at'] = datetime.fromisoformat(t['created_at'])
-                db.add(TransactionLog(**t))
+                tx_list.append(t)
+            db.bulk_insert_mappings(TransactionLog, tx_list)
 
         db.commit()
 

@@ -17,6 +17,7 @@ from app.models.customer import Customer
 from app.models.transaction import TransactionLog
 from app.schemas.pos import POSSyncResponse, POSSyncUploadRequest
 from snowflake import SnowflakeGenerator
+from app.core.sse_manager import sse_manager
 
 router = APIRouter()
 gen = SnowflakeGenerator(2)
@@ -61,7 +62,7 @@ def _bind_assets_sync(db: Session, customer_uuid: str, card_uuid: str = None, sh
     return success
 
 @router.post("/upload")
-def upload_offline_data(
+async def upload_offline_data(
     payload: POSSyncUploadRequest,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user)
@@ -146,6 +147,29 @@ def upload_offline_data(
 
     db.commit()
     
+    # --- [ 发送实时通知 ] ---
+    # 区分是否含有“金钱/流水”类的重要交易
+    event_type = "POS_DATA_SYNCED"
+    title = "POS Data Synced"
+    color = "green"  # 纯数据/安装/换卡设为绿色
+
+    if tx_count > 0:
+        event_type = "POS_RECHARGE_UPLOADED" # 含有充值流水，优先级更高
+        title = "POS Recharge Uploaded"
+        color = "blue"
+
+    await sse_manager.broadcast(event_type, {
+        "title": title,
+        "color": color,
+        "pos_sn": payload.pos_sn,
+        "operator": current_user.username,
+        "summary": {
+            "new_customers": new_cust_count,
+            "transactions": tx_count,
+            "installations": install_count
+        }
+    })
+
     # 额外反馈：获取当前 POS 的实时锁定状态
     pos_status = db.query(POSMachine).filter(POSMachine.pos_sn == payload.pos_sn).first()
     

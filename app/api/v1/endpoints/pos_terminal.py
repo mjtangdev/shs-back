@@ -9,9 +9,17 @@ from app.core.auth_utils import verify_password, create_access_token
 from app.core.ratelimit import limiter
 from app.models.users import User
 from app.models.pos import POSMachine, POSActionLog
+from app.models.card import Card
+from app.models.solar_device import SolarUnit
 from app.models.org import Region
 from app.models.config import ProviderConfig
-from app.schemas.pos import POSLoginRequest, POSList, POSUpdate
+from app.schemas.pos import POSLoginRequest, POSList, POSUpdate, POSCreate
+from app.schemas.card import CardCreate
+from app.schemas.solar_device import SolarUnitCreate
+from fastapi.responses import StreamingResponse
+from app.core.sse_manager import sse_manager
+import asyncio
+import json
 
 router = APIRouter()
 
@@ -79,12 +87,17 @@ def pos_terminal_login(
     3. 强绑定校验：Operator (Role 2) 只能在分配给自己的 POS 上登录
     """
     # --- 1. 验证 POS 机器状态 (严格注册检查模式) ---
-    sn = format_pos_sn(req.pos_sn)
-    pos = db.query(POSMachine).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
+    raw_sn = req.pos_sn.strip()
+    formatted_sn = format_pos_sn(raw_sn)
+
+    pos = db.query(POSMachine).filter(
+        or_(POSMachine.pos_sn == raw_sn, POSMachine.pos_sn == formatted_sn),
+        POSMachine.is_deleted == False
+    ).first()
     
     # 强制检查 SN 是否已由管理员手动录入
     if not pos:
-        raise HTTPException(status_code=404, detail=f"POS Device ({sn}) not registered. Please contact admin.")
+        raise HTTPException(status_code=404, detail=f"POS Device ({raw_sn}) not registered. Please contact admin.")
     
     if pos and pos.lock_status != 0:
         lock_msg = "Admin Locked" if pos.lock_status == 1 else "Finance Locked"
@@ -174,11 +187,11 @@ def pos_terminal_login(
 
         # 记录登录日志
         log = POSActionLog(
-            pos_sn=sn,
+            pos_sn=formatted_sn,
             action_type="POS_LOGIN",
             operator=user.username,
             role=str(user.role),
-            remark=f"Login successful on device {sn}"
+            remark=f"Login successful on device {formatted_sn}"
         )
         db.add(log)
     
@@ -195,8 +208,8 @@ def pos_terminal_login(
         "region_name": region_name,
         "hierarchy": hierarchy,
         "provider": provider_info,
-        "pos_sn": sn,
-        "pos_code": pos.pos_code if pos else "01" # 返回分配给该 POS 的号段前缀
+        "pos_sn": formatted_sn,
+        "pos_code": pos.pos_code if pos else "01" 
     }
 
 @router.get("/check/{pos_sn}")
@@ -206,13 +219,19 @@ def check_pos_status(request: Request, pos_sn: str, db: Session = Depends(deps.g
     POS 终端静默状态检查接口 (增强版)：
     用于 POS 终端在业务前或后台轮询锁定状态及同步服务器时间。
     """
-    sn = format_pos_sn(pos_sn)
-    pos = db.query(POSMachine).options(joinedload(POSMachine.assigned_user)).filter(POSMachine.pos_sn == sn, POSMachine.is_deleted == False).first()
+    raw_sn = pos_sn.strip()
+    formatted_sn = format_pos_sn(raw_sn)
+
+    # 兼容性查询：同时匹配原始 SN 和 补零后的 SN
+    pos = db.query(POSMachine).options(joinedload(POSMachine.assigned_user)).filter(
+        or_(POSMachine.pos_sn == raw_sn, POSMachine.pos_sn == formatted_sn),
+        POSMachine.is_deleted == False
+    ).first()
 
     if not pos:
         return {
             "exists": False,
-            "pos_sn": sn,
+            "pos_sn": raw_sn,
             "message": "Device not registered"
         }
 
@@ -225,7 +244,7 @@ def check_pos_status(request: Request, pos_sn: str, db: Session = Depends(deps.g
 
     return {
         "exists": True,
-        "pos_sn": sn,
+        "pos_sn": formatted_sn,
         "status": pos.status,
         "lock_status": pos.lock_status,
         "lock_reason": pos.last_lock_reason or "Normal",
@@ -234,3 +253,186 @@ def check_pos_status(request: Request, pos_sn: str, db: Session = Depends(deps.g
         "assigned_user_name": f"{pos.assigned_user.first_name} {pos.assigned_user.last_name}" if pos.assigned_user else "Unassigned",
         "server_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
+
+@router.get("/summary/counts")
+def get_pos_resource_counts(
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    获取 POS 终端关注的基础资源统计数据：
+    - IC 卡总数
+    - 太阳能设备总数
+    - POS 终端总数
+    """
+    ic_card_count = db.query(func.count(Card.id)).scalar()
+    solar_device_count = db.query(func.count(SolarUnit.id)).scalar()
+    pos_terminal_count = db.query(func.count(POSMachine.id)).filter(POSMachine.is_deleted == False).scalar()
+    
+    return {
+        "status": "success",
+        "counts": {
+            "ic_cards": ic_card_count,
+            "solar_devices": solar_device_count,
+            "pos_terminals": pos_terminal_count
+        }
+    }
+
+# --- 4. SSE 消息推送通道 ---
+
+@router.get("/events/stream")
+async def sse_events():
+    """
+    SSE 消息推送通道：前端通过此接口监听系统实时事件。
+    支持心跳机制，解决 Nginx ERR_INCOMPLETE_CHUNKED_ENCODING 问题。
+    """
+    async def event_generator():
+        queue = await sse_manager.subscribe()
+        try:
+            while True:
+                try:
+                    # 尝试在 20 秒内获取新消息
+                    data = await asyncio.wait_for(queue.get(), timeout=20.0)
+                    yield data
+                except asyncio.TimeoutError:
+                    # 如果 20 秒没消息，发送心跳包 (ping)
+                    yield ": ping\n\n"
+        except Exception:
+            # 连接断开时清理
+            sse_manager.unsubscribe(queue)
+            
+    return StreamingResponse(
+        event_generator(), 
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no" # 👈 特别告知 Nginx 不要缓存此流
+        }
+    )
+
+# --- 5. Admin APK 专用入库接口 (扫码/读卡入库 + 实时推送) ---
+
+@router.post("/admin/register-card")
+async def admin_register_card(
+    card_in: CardCreate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_finance_or_admin)
+):
+    """Admin APK 读卡入库：录入新的 IC 卡，成功后推送通知"""
+    card_uuid = card_in.card_uuid.strip().upper()
+    # 核心修复：如果卡号为空字符串，转为 None (NULL)，避免违反唯一约束
+    card_number = (card_in.card_number or "").strip() or None
+
+    # 查重逻辑：分别检查 UUID 和 卡号，提供更准确的错误提示
+    existing_uuid = db.query(Card).filter(Card.card_uuid == card_uuid).first()
+    if existing_uuid:
+        raise HTTPException(status_code=400, detail="Registration Failed: This IC Card (UUID) is already registered.")
+    
+    if card_number:
+        existing_num = db.query(Card).filter(Card.card_number == card_number).first()
+        if existing_num:
+            raise HTTPException(status_code=400, detail="Registration Failed: This Physical Card Number is already in use.")
+    
+    try:
+        new_card = Card(
+            card_uuid=card_uuid,
+            card_number=card_number,
+            status=0,
+            created_at=datetime.now()
+        )
+        db.add(new_card)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database Error: Could not save card. {str(e)}")
+
+    # --- [ 发送实时通知 ] ---
+    await sse_manager.broadcast("CARD_REGISTERED", {
+        "title": "IC Card Registered",
+        "description": f"Card {card_uuid} stock-in success",
+        "card_uuid": card_uuid,
+        "operator": current_user.username,
+        "color": "green",
+        "id": new_card.id
+    })
+
+    return {"status": "success", "id": new_card.id}
+
+@router.post("/admin/register-solar-unit")
+async def admin_register_solar_unit(
+    unit_in: SolarUnitCreate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_finance_or_admin)
+):
+    """Admin APK 扫码入库：录入新的主机，成功后推送通知"""
+    shs_id = unit_in.shs_machine_id.strip()
+    
+    existing = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Registration Failed: This Solar Machine ID is already registered.")
+    
+    s_id, r_id, f_id, l_id = f"{shs_id}1", f"{shs_id}2", f"{shs_id}3", f"{shs_id}4"
+
+    try:
+        new_unit = SolarUnit(
+            shs_machine_id=shs_id, solar_equipment_id=s_id, radio_id=r_id,
+            flashlight_id=f_id, led_light_id=l_id, shs_status=0,
+            production_date=unit_in.production_date or datetime.now(), created_at=datetime.now()
+        )
+        db.add(new_unit)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database Error: Could not save solar unit. {str(e)}")
+
+    # --- [ 发送实时通知 ] ---
+    await sse_manager.broadcast("SOLAR_UNIT_REGISTERED", {
+        "title": "Solar Unit Registered",
+        "description": f"Unit {shs_id} stock-in success",
+        "shs_machine_id": shs_id,
+        "operator": current_user.username,
+        "color": "green",
+        "id": new_unit.id
+    })
+
+    return {"status": "success", "id": new_unit.id}
+
+@router.post("/admin/register-pos-terminal")
+async def admin_register_pos_terminal(
+    pos_in: POSCreate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_finance_or_admin)
+):
+    """Admin APK 扫码入库：录入新的 POS 终端，成功后推送通知"""
+    sn = pos_in.pos_sn.strip()
+    
+    existing = db.query(POSMachine).filter(POSMachine.pos_sn == sn).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Registration Failed: This POS Serial Number (SN) is already registered.")
+    
+    pos_code = "01"
+    last_pos = db.query(POSMachine).order_by(POSMachine.id.desc()).first()
+    if last_pos and last_pos.pos_code.isdigit():
+        pos_code = str(int(last_pos.pos_code) + 1).zfill(2)
+
+    try:
+        new_pos = POSMachine(pos_sn=sn, pos_code=pos_code, status=1, created_at=datetime.now())
+        db.add(new_pos)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database Error: Could not save POS terminal. {str(e)}")
+
+    # --- [ 发送实时通知 ] ---
+    await sse_manager.broadcast("POS_REGISTERED", {
+        "title": "POS Terminal Registered",
+        "description": f"POS {sn} stock-in success",
+        "pos_sn": sn,
+        "pos_code": pos_code,
+        "operator": current_user.username,
+        "color": "green",
+        "id": new_pos.id
+    })
+
+    return {"status": "success", "id": new_pos.id}

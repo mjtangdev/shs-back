@@ -21,6 +21,8 @@ from app.db.base_class import Base
 from app.db.session import engine, SessionLocal
 from app.api.v1.api import api_router
 from app.api.v1.endpoints import apk
+from app.core.websocket_manager import manager
+from fastapi import WebSocket, WebSocketDisconnect
 
 # --- [ 核心增强 ] 全局统一日期序列化器 (去除 T) ---
 class NonTJSONResponse(JSONResponse):
@@ -50,10 +52,53 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 SHS Backend Starting...")
     try:
         from app.models import org, users, customer, card, solar_device, transaction, pos
+        from app.models.users import User
+        from app.models.org import Region
+        from app.models.config import ProviderConfig
+        from app.core.auth_utils import hash_password
+
         Base.metadata.create_all(bind=engine)
         
-        # 序列同步维护
         db = SessionLocal()
+        
+        # --- [ 自动初始化检查 ] ---
+        # 如果数据库中没有用户，则自动创建默认账号
+        if not db.query(User).first():
+            logger.info("🌱 No users found. Initializing default accounts...")
+            
+            # 1. 创建基础根区域
+            root_region = Region(name="Pangasinan", level=0, daily_rate=7.0)
+            db.add(root_region)
+            db.flush()
+
+            # 2. 创建超级管理员 (Role 0)
+            db.add(User(
+                username="superadmin",
+                password_hash=hash_password("Supplier_Secure_Pwd_2026"),
+                first_name="Supplier", last_name="Support",
+                role=0, mobile="1111111111", region_id=root_region.id,
+                is_active=True
+            ))
+
+            # 3. 创建系统管理员 (Role 1)
+            db.add(User(
+                username="admin",
+                password_hash=hash_password("admin123"),
+                first_name="System", last_name="Admin",
+                role=1, mobile="09123456789", region_id=root_region.id,
+                is_active=True
+            ))
+
+            # 4. 初始化供应商基础配置
+            db.add(ProviderConfig(
+                name="Default SHS Provider",
+                tin="TIN_INIT_0000",
+                is_initialized=False
+            ))
+            db.commit()
+            logger.info("✅ Default accounts (superadmin/admin) created.")
+
+        # 序列同步维护
         tables = ["users", "customers", "cards", "solar_units", "transaction_logs", "regions", "pos_machines"]
         for table in tables:
             try:
@@ -68,11 +113,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Startup error: {e}")
 
-    # 定时备份
+    # 定时备份 (生产模式：每天 0点 和 12点 各执行一次)
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.core.backup import perform_db_backup
     scheduler = BackgroundScheduler()
-    scheduler.add_job(perform_db_backup, 'cron', hour=2, minute=0)
+    # 使用 cron 触发器，在 0:00 和 12:00 备份
+    scheduler.add_job(perform_db_backup, 'cron', hour='0,12', minute=0)
     scheduler.start()
     yield
     scheduler.shutdown()

@@ -5,10 +5,10 @@ from typing import Optional, List
 # --- 1. 创建请求校验 ---
 class SolarUnitCreate(BaseModel):
     shs_machine_id: str = Field(..., min_length=1, description="主机序列号")
-    solar_equipment_id: str = Field(..., min_length=1, description="太阳能板/设备ID")
-    radio_id: str = Field(..., min_length=1, description="收音机ID")
-    flashlight_id: str = Field(..., min_length=1, description="手电筒ID")
-    led_light_id: str = Field(..., min_length=1, description="LED灯ID")
+    solar_equipment_id: Optional[str] = Field(None, description="太阳能板/设备ID (可选，默认根据主机ID生成)")
+    radio_id: Optional[str] = Field(None, description="收音机ID (可选，默认根据主机ID生成)")
+    flashlight_id: Optional[str] = Field(None, description="手电筒ID (可选，默认根据主机ID生成)")
+    led_light_id: Optional[str] = Field(None, description="LED灯ID (可选，默认根据主机ID生成)")
     
     production_date: datetime
     city: Optional[str] = None

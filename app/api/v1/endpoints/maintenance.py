@@ -1,7 +1,8 @@
 import json
 import zipfile
 import io
-from typing import Any
+import os
+from typing import Any, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks, Form
 from sqlalchemy.orm import Session
 
@@ -13,6 +14,25 @@ from app.core.legacy_migration import run_legacy_sql_migration
 from app.core.auth_utils import verify_password
 
 router = APIRouter()
+
+@router.get("/backups", response_model=List[str])
+def list_server_backups(
+    current_user: User = Depends(deps.get_current_user)
+) -> Any:
+    """
+    列出服务器上存储的所有 JSON 备份文件 (仅管理员)
+    """
+    if current_user.role not in [0, 1]:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    backup_dir = "backups"
+    if not os.path.exists(backup_dir):
+        return []
+    
+    files = [f for f in os.listdir(backup_dir) if f.endswith(".json")]
+    # 按修改时间倒序排列
+    files.sort(key=lambda x: os.path.getmtime(os.path.join(backup_dir, x)), reverse=True)
+    return files
 
 @router.post("/migrate-from-legacy-zip")
 async def migrate_from_legacy_zip(
@@ -66,12 +86,13 @@ async def migrate_from_legacy_zip(
 
 @router.post("/restore-from-json")
 async def restore_db_from_json(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
+    db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_user)
 ) -> Any:
     """
-    【危险操作】从上传的 JSON 文件一键恢复/覆盖数据库。
-    允许 Role 0 (Super Admin) 或 Role 1 (Admin) 执行。
+    【危险操作】从上传的 JSON 文件恢复/覆盖数据库。
     """
     if current_user.role not in [0, 1]:
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -82,11 +103,14 @@ async def restore_db_from_json(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON file: {str(e)}")
 
-    success, message = perform_db_restore(json_content=json_data)
-    if not success:
-        raise HTTPException(status_code=500, detail=f"Restore failed: {message}")
+    # 👈 核心改进：手动关闭当前请求的 DB 连接
+    # 这样在后台任务启动时，当前连接已经被归还，不会产生锁冲突
+    db.close()
 
-    return {"status": "success", "message": "Database restored and synced successfully"}
+    # 排入后台任务执行
+    background_tasks.add_task(perform_db_restore, json_data)
+
+    return {"status": "success", "message": "Database restore started. Connections released."}
 
 @router.post("/export-to-json")
 def export_db_to_json(

@@ -5,7 +5,7 @@ from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
 from app.models.solar_device import SolarUnit
@@ -117,15 +117,41 @@ def get_solar_units(
 def create_solar_unit(
     db: Session = Depends(get_db), 
     unit_in: SolarUnitCreate = None, 
-    current_user: Any = Depends(get_finance_or_admin)
+    current_user: Any = Depends(get_current_user)
 ):
     # 检查主机 ID 是否已存在
     existing = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == unit_in.shs_machine_id).first()
     if existing:
         raise HTTPException(status_code=400, detail="Machine ID already exists")
     
+    # 自动生成逻辑：如果未提供子 ID，则基于主机 ID 追加后缀 1-4
+    s_id = unit_in.solar_equipment_id or f"{unit_in.shs_machine_id}1"
+    r_id = unit_in.radio_id or f"{unit_in.shs_machine_id}2"
+    f_id = unit_in.flashlight_id or f"{unit_in.shs_machine_id}3"
+    l_id = unit_in.led_light_id or f"{unit_in.shs_machine_id}4"
+
+    # 再次检查生成的子 ID 唯一性
+    check_ids = [s_id, r_id, f_id, l_id]
+    for cid in check_ids:
+        conflict = db.query(SolarUnit).filter(or_(
+            SolarUnit.shs_machine_id == cid,
+            SolarUnit.solar_equipment_id == cid,
+            SolarUnit.radio_id == cid,
+            SolarUnit.flashlight_id == cid,
+            SolarUnit.led_light_id == cid
+        )).first()
+        if conflict:
+            raise HTTPException(status_code=400, detail=f"Generated ID {cid} already exists in system")
+
     new_unit = SolarUnit(
-        **unit_in.model_dump(), 
+        shs_machine_id=unit_in.shs_machine_id,
+        solar_equipment_id=s_id,
+        radio_id=r_id,
+        flashlight_id=f_id,
+        led_light_id=l_id,
+        production_date=unit_in.production_date,
+        city=unit_in.city,
+        town=unit_in.town,
         shs_status=0, 
         created_at=datetime.now()
     )
@@ -134,14 +160,13 @@ def create_solar_unit(
     return {"status": "success", "id": new_unit.id}
 
 @router.get("/import-template")
-def get_solar_import_template(current_user: Any = Depends(get_finance_or_admin)):
-    """获取设备导入 Excel 模板"""
+def get_solar_import_template(current_user: Any = Depends(get_current_user)):
+    """获取设备导入 Excel 模板 (仅需主机 ID)"""
     df = pd.DataFrame(columns=[
-        "shs_machine_id", "solar_equipment_id", "radio_id", 
-        "flashlight_id", "led_light_id", "production_date"
+        "shs_machine_id", "production_date"
     ])
     # 示例数据
-    df.loc[0] = ["M1001", "S1001", "R1001", "F1001", "L1001", "2024-01-01"]
+    df.loc[0] = ["HT2026072000001", "2024-01-01"]
     
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -158,60 +183,61 @@ def get_solar_import_template(current_user: Any = Depends(get_finance_or_admin))
 async def import_solar_units(
     file: UploadFile = File(...), 
     db: Session = Depends(get_db), 
-    current_user: Any = Depends(get_finance_or_admin)
+    current_user: Any = Depends(get_current_user)
 ):
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Invalid Excel file")
     
     contents = await file.read()
     df = pd.read_excel(io.BytesIO(contents), dtype=str)
-    # 清理表头：转小写，去空格，换下划线
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
     
     batch, skipped = [], []
-    # 预加载已存在的全部 5 种配件 ID，防止违反唯一约束报错
-    exist_shs = {u[0] for u in db.query(SolarUnit.shs_machine_id).all() if u[0]}
-    exist_solar = {u[0] for u in db.query(SolarUnit.solar_equipment_id).all() if u[0]}
-    exist_radio = {u[0] for u in db.query(SolarUnit.radio_id).all() if u[0]}
-    exist_flash = {u[0] for u in db.query(SolarUnit.flashlight_id).all() if u[0]}
-    exist_led = {u[0] for u in db.query(SolarUnit.led_light_id).all() if u[0]}
+    # 预加载现有 ID 以便查重
+    all_exist_ids = set()
+    rows = db.execute(text("SELECT shs_machine_id, solar_equipment_id, radio_id, flashlight_id, led_light_id FROM solar_units")).all()
+    for r in rows:
+        for val in r:
+            if val: all_exist_ids.add(val)
     
     for idx, row in df.iterrows():
         shs_id = str(row.get('shs_machine_id', '')).strip()
-        solar_id = str(row.get('solar_equipment_id', '')).strip()
-        radio_id = str(row.get('radio_id', '')).strip()
-        flash_id = str(row.get('flashlight_id', '')).strip()
-        led_id = str(row.get('led_light_id', '')).strip()
-        
-        # 检查是否缺失必填的唯一标识
-        if not all([shs_id, solar_id, radio_id, flash_id, led_id]):
-            skipped.append(f"Row {idx+2}: Missing one or more required equipment IDs")
+        if not shs_id:
+            skipped.append(f"Row {idx+2}: Missing machine ID")
             continue
             
-        # 检查是否和数据库内数据（或当前 Excel 之前的行）重复
-        if (shs_id in exist_shs or solar_id in exist_solar or 
-            radio_id in exist_radio or flash_id in exist_flash or led_id in exist_led):
-            skipped.append(f"Row {idx+2}: One or more IDs already exist in the system (Duplicate)")
+        # 自动生成 4 个子 ID
+        s_id = f"{shs_id}1"
+        r_id = f"{shs_id}2"
+        f_id = f"{shs_id}3"
+        l_id = f"{shs_id}4"
+        
+        target_ids = [shs_id, s_id, r_id, f_id, l_id]
+        
+        # 检查是否重复
+        is_duplicate = False
+        for tid in target_ids:
+            if tid in all_exist_ids:
+                skipped.append(f"Row {idx+2}: ID {tid} already exists")
+                is_duplicate = True
+                break
+        
+        if is_duplicate:
             continue
         
-        # 将行数据转为模型
         batch.append(SolarUnit(
             shs_machine_id=shs_id, 
-            solar_equipment_id=solar_id,
-            radio_id=radio_id,
-            flashlight_id=flash_id,
-            led_light_id=led_id,
-            # 日期转换，如果失败则用当前时间
+            solar_equipment_id=s_id,
+            radio_id=r_id,
+            flashlight_id=f_id,
+            led_light_id=l_id,
             production_date=pd.to_datetime(row.get('production_date', datetime.now()), errors='coerce') or datetime.now(),
             shs_status=0, 
             created_at=datetime.now()
         ))
-        # 加入缓存，防止同一次导入文件内的相互重复
-        exist_shs.add(shs_id)
-        exist_solar.add(solar_id)
-        exist_radio.add(radio_id)
-        exist_flash.add(flash_id)
-        exist_led.add(led_id)
+        # 加入内存集合防止文件内重复
+        for tid in target_ids:
+            all_exist_ids.add(tid)
 
     if batch:
         db.add_all(batch)

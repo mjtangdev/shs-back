@@ -157,6 +157,63 @@ def update_customer(
     db.commit()
     return {"status": "success"}
 
+@router.post("/import")
+async def import_customers(
+    file: UploadFile = File(...),
+    region_id: Optional[int] = Query(None), # 允许从 UI 传参
+    db: Session = Depends(deps.get_db),
+    current_user: Any = Depends(deps.get_finance_or_admin)
+):
+    """
+    客户批量导入接口
+    1. 支持 region_id 从参数传，也支持从 Excel 读
+    2. 手机号不再作为强制查重的唯一键 (因为现在可能为空)
+    """
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Invalid file type")
+
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents), dtype=str)
+    df = df.where(pd.notnull(df), None)
+    df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
+    batch, skipped = [], []
+    provider = db.query(ProviderConfig).first()
+    
+    for idx, row in df.iterrows():
+        # 确定区域 ID
+        target_region = row.get('region_id') or region_id
+        if not target_region:
+            skipped.append(f"Row {idx+2}: Missing Region ID")
+            continue
+        
+        # 确定手机号
+        m = str(row.get('mobile', '')).strip() if row.get('mobile') else None
+        
+        # 业务 UUID 生成逻辑
+        new_uuid = generate_customer_uuid(db, int(target_region))
+        
+        new_cust = Customer(
+            uuid=new_uuid,
+            first_name=str(row.get('first_name', '')).strip(),
+            last_name=str(row.get('last_name', '')).strip(),
+            gender=str(row.get('gender', 'male')).lower(),
+            mobile=m or f"TEMP-{new_uuid}", # 没手机号就用 UUID 占位
+            address=row.get('address'),
+            email=row.get('email'),
+            region_id=int(target_region),
+            electric_company=provider.name if provider else "SHS",
+            created_at=datetime.now()
+        )
+        batch.append(new_cust)
+        # 为了让 generate_customer_uuid 能连续生成，需要逐条刷新或手动累加
+        # 这里采用逐条 add 以保证 UUID 连续不重复
+        db.add(new_cust)
+        db.flush() 
+
+    db.commit()
+    return {"status": "success", "imported": len(batch), "skipped": skipped}
+
 # --- 4. 辅助工具 (Excel 导出与模板) ---
 @router.get("/export")
 def export_customers(
