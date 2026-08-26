@@ -298,7 +298,10 @@ def export_solar_units(
 
     for u in units:
         city_name, town_name = "-", "-"
+        # 👈 核心修复：优先从关联的 Customer 对象获取姓名
+        owner_name = u.customer_name or "-"
         if u.customer:
+            owner_name = f"{u.customer.first_name} {u.customer.last_name}"
             if u.customer.region:
                 reg = u.customer.region
                 if reg.level == 2:
@@ -317,7 +320,7 @@ def export_solar_units(
             "Flashlight ID": u.flashlight_id,
             "LED ID": u.led_light_id,
             "Status": status_map.get(u.shs_status, "Unknown"),
-            "Owner": u.customer_name or "-",
+            "Owner": owner_name, # 👈 使用修复后的变量
             "Municipality": city_name,
             "Barangay": town_name,
             "Production Date": u.production_date.strftime("%Y-%m-%d") if u.production_date else "-",

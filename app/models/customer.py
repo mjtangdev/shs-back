@@ -22,7 +22,7 @@ class Customer(Base):
     # 明确外键约束
     region_id = Column(Integer, ForeignKey("regions.id"), index=True, nullable=False)
     status = Column(Integer, default=1)
-    
+
     # 新增扩展字段 / New Extended Fields
     electric_company = Column(String(200), nullable=True, comment="Associated with Provider Name")
     beneficiary_count = Column(Integer, default=0, comment="Number of beneficiaries")

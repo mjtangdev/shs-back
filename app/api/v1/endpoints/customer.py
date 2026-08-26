@@ -157,6 +157,41 @@ def update_customer(
     db.commit()
     return {"status": "success"}
 
+# --- 3.1 安全删除空客户 ---
+@router.delete("/{customer_id}")
+def delete_empty_customer(
+    customer_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: Any = Depends(deps.get_finance_or_admin)
+):
+    """
+    物理删除没有关联资产和财务流水的空客户。
+    """
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # 1. 检查是否有绑定卡片
+    has_cards = db.query(Card).filter(Card.customer_uuid == customer.uuid).first()
+    if has_cards:
+        raise HTTPException(status_code=400, detail="Cannot delete: Customer has an active IC card bound.")
+
+    # 2. 检查是否有绑定设备
+    has_units = db.query(SolarUnit).filter(SolarUnit.customer_uuid == customer.uuid).first()
+    if has_units:
+        raise HTTPException(status_code=400, detail="Cannot delete: Customer has an active SHS device bound.")
+
+    # 3. 检查是否有财务流水记录
+    has_transactions = db.query(TransactionLog).filter(TransactionLog.customer_uuid == customer.uuid).first()
+    if has_transactions:
+        raise HTTPException(status_code=400, detail="Cannot delete: Customer has history financial transactions.")
+
+    # 如果通过以上所有检查，执行物理删除
+    db.delete(customer)
+    db.commit()
+    
+    return {"status": "success", "message": f"Empty customer {customer.uuid} has been deleted."}
+
 @router.post("/import")
 async def import_customers(
     file: UploadFile = File(...),
@@ -221,14 +256,76 @@ def export_customers(
     region_id: Optional[int] = Query(None),
     current_user: Any = Depends(deps.get_finance_or_admin)
 ):
-    # 此处依赖 get_finance_or_admin，确保已从 deps 导入
-    query = db.query(Customer).options(selectinload(Customer.solar_units), selectinload(Customer.cards))
+    """
+    全量客户报表导出 (含资产绑定信息)
+    """
+    query = db.query(Customer).options(
+        joinedload(Customer.region).joinedload(Region.parent),
+        selectinload(Customer.solar_units),
+        selectinload(Customer.cards)
+    )
+
+    # 支持按区域筛选导出
+    if region_id:
+        allowed_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            c_ids = [c[0] for c in children]; allowed_ids.extend(c_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
+            allowed_ids.extend([s[0] for s in sub_children])
+        query = query.filter(Customer.region_id.in_(allowed_ids))
+
     customers = query.all()
-    df = pd.DataFrame([{"ID": c.uuid, "Name": f"{c.first_name} {c.last_name}", "Mobile": c.mobile} for c in customers])
+    
+    rows = []
+    for c in customers:
+        # 解析详细地址层级
+        municipality, barangay, purok = "-", "-", "-"
+        if c.region:
+            if c.region.level == 2:
+                purok = c.region.name
+                if c.region.parent:
+                    barangay = c.region.parent.name
+                    if c.region.parent.parent:
+                        municipality = c.region.parent.parent.name
+            elif c.region.level == 1:
+                barangay = c.region.name
+                if c.region.parent:
+                    municipality = c.region.parent.name
+            else:
+                municipality = c.region.name
+
+        rows.append({
+            "Account ID": c.uuid,
+            "First Name": c.first_name,
+            "Last Name": c.last_name,
+            "Gender": c.gender.capitalize() if c.gender else "-",
+            "Mobile": c.mobile,
+            "Municipality": municipality,
+            "Barangay": barangay,
+            "Purok": purok,
+            "Card UID": c.cards[0].card_uuid if c.cards else "Not Bound",
+            "SHS Machine ID": c.solar_units[0].shs_machine_id if c.solar_units else "Not Bound",
+            "Date Installed": c.installed_at.strftime("%Y-%m-%d") if c.installed_at else "-",
+            "Expiry Date": c.expiry_time.strftime("%Y-%m-%d") if c.expiry_time else "Never Recharged",
+            "Total Days": float(c.total_recharged_days or 0),
+            "Total Amount": float(c.total_recharged_amount or 0),
+            "Address Note": c.address or "-",
+            "Created Date": c.created_at.strftime("%Y-%m-%d %H:%M")
+        })
+
+    df = pd.DataFrame(rows)
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False)
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Customer-Records')
+    
     output.seek(0)
-    return StreamingResponse(output, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    filename = f"Customer_List_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(
+        output, 
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @router.get("/import-template")
 def get_customer_import_template(
@@ -281,8 +378,12 @@ def get_customer_detail(
     return {
         "id": customer.id, "uuid": customer.uuid, "first_name": customer.first_name,
         "last_name": customer.last_name, "gender": customer.gender, "mobile": customer.mobile,
-        "email": customer.email, "address": customer.address, "region_id": customer.region_id,
-        "region_name": display_region, "expiry_time": customer.expiry_time,
+        "email": customer.email, "address": customer.address, "birthday": customer.birthday,
+        "region_id": customer.region_id, "region_name": display_region, 
+        "beneficiary_count": customer.beneficiary_count,
+        "representative_name": customer.representative_name,
+        "rep_relationship": customer.rep_relationship,
+        "expiry_time": customer.expiry_time,
         "total_recharged_days": float(customer.total_recharged_days or 0),
         "total_recharged_amount": float(customer.total_recharged_amount or 0),
         "created_at": customer.created_at,
