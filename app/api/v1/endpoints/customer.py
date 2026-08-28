@@ -334,10 +334,10 @@ def get_customer_import_template(
     """获取客户导入 Excel 模板"""
     df = pd.DataFrame(columns=[
         "first_name", "last_name", "gender", "mobile",
-        "email", "address", "region_id"
+        "email", "address"
     ])
     # 示例数据
-    df.loc[0] = ["John", "Doe", "male", "123456789", "john@example.com", "Main St 123", 1]
+    df.loc[0] = ["John", "Doe", "male", "123456789", "john@example.com", "Main St 123"]
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
