@@ -206,8 +206,13 @@ async def import_solar_units(
             skipped.append(f"Row {idx+2}: Missing machine ID")
             continue
             
-        # PV 板拆分：如果 Excel 传入了 PV 序列号且非空则使用，否则保持 None
-        raw_pv = str(row.get('solar_equipment_id', '')).strip() if row.get('solar_equipment_id') else ''
+        # PV 板拆分：如果 Excel 传入了 PV 序列号（如 solar_panels）且非空则使用，否则保持 None
+        raw_pv = str(
+            row.get('solar_panels') or 
+            row.get('solar_panel') or 
+            row.get('solar_equipment_id') or 
+            ''
+        ).strip()
         s_id = raw_pv if raw_pv else None
         
         r_id = f"{shs_id}2"
@@ -284,7 +289,7 @@ def update_unit_pv_id(
 def get_solar_pv_import_template(current_user: Any = Depends(get_current_user)):
     """获取独立 PV 光伏板序列号批量绑定模板"""
     df = pd.DataFrame(columns=[
-        "shs_machine_id", "solar_equipment_id"
+        "shs_machine_id", "solar_panels"
     ])
     df.loc[0] = ["HT2026072000001", "PV2026091300001"]
 
@@ -324,7 +329,14 @@ async def import_solar_pv_ids(
 
     for idx, row in df.iterrows():
         shs_id = str(row.get('shs_machine_id', '')).strip() if row.get('shs_machine_id') else ''
-        pv_id = str(row.get('solar_equipment_id', '')).strip() if row.get('solar_equipment_id') else ''
+        # 支持多种别名表头：solar_panels / solar_panel / solar_equipment_id / pv_sn
+        pv_id = str(
+            row.get('solar_panels') or 
+            row.get('solar_panel') or 
+            row.get('solar_equipment_id') or 
+            row.get('pv_sn') or 
+            ''
+        ).strip()
 
         if not shs_id:
             skipped.append(f"Row {idx+2}: Missing machine ID (shs_machine_id)")
