@@ -10,7 +10,7 @@ class SolarUnit(Base):
 
     # 5个核心ID (物理标识)
     shs_machine_id = Column(String(100), unique=True, index=True, nullable=False)
-    solar_equipment_id = Column(String(100), unique=True, index=True, nullable=False)
+    solar_equipment_id = Column(String(100), unique=True, index=True, nullable=True)  # PV 序列号拆分：独立录入，允许为空
     radio_id = Column(String(100), unique=True, index=True, nullable=False)
     flashlight_id = Column(String(100), unique=True, index=True, nullable=False)
     led_light_id = Column(String(100), unique=True, index=True, nullable=False)

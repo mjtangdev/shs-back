@@ -18,7 +18,7 @@ class SolarUnitCreate(BaseModel):
 class SolarUnitItem(BaseModel):
     id: int
     shs_machine_id: str
-    solar_equipment_id: str
+    solar_equipment_id: Optional[str] = "-"
     radio_id: str
     flashlight_id: str
     led_light_id: str
@@ -43,3 +43,7 @@ class SolarUnitList(BaseModel):
 # --- 4. 单个对象详细响应 (可选) ---
 class SolarUnitResponse(SolarUnitItem):
     pass
+
+# --- 5. 单独绑定/更新 PV 序列号 ---
+class SolarUnitPVBind(BaseModel):
+    solar_equipment_id: str = Field(..., min_length=1, description="单独绑定的 PV 光伏板序列号")

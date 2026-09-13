@@ -12,7 +12,7 @@ from app.models.solar_device import SolarUnit
 from app.models.customer import Customer
 from app.models.org import Region
 # 注意：即便不链接关系，我们可能仍需搜索 Customer 表，但暂时为了启动，我们只查 SolarUnit 本身
-from app.schemas.solar_device import SolarUnitCreate, SolarUnitResponse, SolarUnitList
+from app.schemas.solar_device import SolarUnitCreate, SolarUnitResponse, SolarUnitList, SolarUnitPVBind
 
 router = APIRouter()
 
@@ -124,14 +124,14 @@ def create_solar_unit(
     if existing:
         raise HTTPException(status_code=400, detail="Machine ID already exists")
     
-    # 自动生成逻辑：如果未提供子 ID，则基于主机 ID 追加后缀 1-4
-    s_id = unit_in.solar_equipment_id or f"{unit_in.shs_machine_id}1"
+    # PV 序列号拆分：允许为空；若手动传入则使用该值，不再自动拼接后缀 1
+    s_id = unit_in.solar_equipment_id.strip() if unit_in.solar_equipment_id and unit_in.solar_equipment_id.strip() else None
     r_id = unit_in.radio_id or f"{unit_in.shs_machine_id}2"
     f_id = unit_in.flashlight_id or f"{unit_in.shs_machine_id}3"
     l_id = unit_in.led_light_id or f"{unit_in.shs_machine_id}4"
 
-    # 再次检查生成的子 ID 唯一性
-    check_ids = [s_id, r_id, f_id, l_id]
+    # 检查非空子 ID 的唯一性
+    check_ids = [cid for cid in [s_id, r_id, f_id, l_id] if cid]
     for cid in check_ids:
         conflict = db.query(SolarUnit).filter(or_(
             SolarUnit.shs_machine_id == cid,
@@ -161,12 +161,12 @@ def create_solar_unit(
 
 @router.get("/import-template")
 def get_solar_import_template(current_user: Any = Depends(get_current_user)):
-    """获取设备导入 Excel 模板 (仅需主机 ID)"""
+    """获取设备导入 Excel 模板 (主机与可选 PV)"""
     df = pd.DataFrame(columns=[
-        "shs_machine_id", "production_date"
+        "shs_machine_id", "solar_equipment_id", "production_date"
     ])
     # 示例数据
-    df.loc[0] = ["HT2026072000001", "2024-01-01"]
+    df.loc[0] = ["HT2026072000001", "PV2026091300001", "2024-01-01"]
     
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -206,13 +206,15 @@ async def import_solar_units(
             skipped.append(f"Row {idx+2}: Missing machine ID")
             continue
             
-        # 自动生成 4 个子 ID
-        s_id = f"{shs_id}1"
+        # PV 板拆分：如果 Excel 传入了 PV 序列号且非空则使用，否则保持 None
+        raw_pv = str(row.get('solar_equipment_id', '')).strip() if row.get('solar_equipment_id') else ''
+        s_id = raw_pv if raw_pv else None
+        
         r_id = f"{shs_id}2"
         f_id = f"{shs_id}3"
         l_id = f"{shs_id}4"
         
-        target_ids = [shs_id, s_id, r_id, f_id, l_id]
+        target_ids = [cid for cid in [shs_id, s_id, r_id, f_id, l_id] if cid]
         
         # 检查是否重复
         is_duplicate = False
@@ -238,6 +240,119 @@ async def import_solar_units(
         # 加入内存集合防止文件内重复
         for tid in target_ids:
             all_exist_ids.add(tid)
+
+    if batch:
+        db.add_all(batch)
+        db.commit()
+    
+    return {"status": "success", "imported": len(batch), "skipped": skipped}
+
+# --- 新增：单个设备手动绑定/更新 PV 序列号 ---
+@router.put("/{unit_id}/pv")
+def update_unit_pv_id(
+    unit_id: int,
+    pv_in: SolarUnitPVBind,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """单独绑定/修改/更新设备的 PV 太阳能光伏板序列号"""
+    unit = db.query(SolarUnit).filter(SolarUnit.id == unit_id).first()
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+
+    new_pv = pv_in.solar_equipment_id.strip()
+    if new_pv and new_pv != unit.solar_equipment_id:
+        # 唯一性校验
+        conflict = db.query(SolarUnit).filter(
+            SolarUnit.solar_equipment_id == new_pv,
+            SolarUnit.id != unit_id
+        ).first()
+        if conflict:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"PV Serial Number '{new_pv}' is already bound to another unit ({conflict.shs_machine_id})"
+            )
+
+    unit.solar_equipment_id = new_pv if new_pv else None
+    unit.updated_at = datetime.now()
+    db.commit()
+    db.refresh(unit)
+    return {"status": "success", "id": unit.id, "solar_equipment_id": unit.solar_equipment_id}
+
+# --- 新增：独立 PV 序列号 Excel 绑定模板 ---
+@router.get("/import-pv-template")
+def get_solar_pv_import_template(current_user: Any = Depends(get_current_user)):
+    """获取独立 PV 光伏板序列号批量绑定模板"""
+    df = pd.DataFrame(columns=[
+        "shs_machine_id", "solar_equipment_id"
+    ])
+    df.loc[0] = ["HT2026072000001", "PV2026091300001"]
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Sheet1')
+
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=solar_pv_import_template.xlsx"}
+    )
+
+# --- 新增：独立 PV 序列号 Excel 批量绑定导入 ---
+@router.post("/import-pv")
+async def import_solar_pv_ids(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """通过 Excel 批量给现有主机设备绑定/更新 PV 太阳能板序列号"""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Invalid Excel file")
+
+    contents = await file.read()
+    df = pd.read_excel(io.BytesIO(contents), dtype=str)
+    df = df.where(pd.notnull(df), None)
+    df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
+
+    updated_count, skipped = 0, []
+    # 预加载现有数据中的 PV 序列号以防冲突
+    existing_pv_map = {} # pv_id -> (unit_id, shs_machine_id)
+    for row in db.execute(text("SELECT id, shs_machine_id, solar_equipment_id FROM solar_units")).all():
+        if row[2]:
+            existing_pv_map[row[2]] = (row[0], row[1])
+
+    for idx, row in df.iterrows():
+        shs_id = str(row.get('shs_machine_id', '')).strip() if row.get('shs_machine_id') else ''
+        pv_id = str(row.get('solar_equipment_id', '')).strip() if row.get('solar_equipment_id') else ''
+
+        if not shs_id:
+            skipped.append(f"Row {idx+2}: Missing machine ID (shs_machine_id)")
+            continue
+        if not pv_id:
+            skipped.append(f"Row {idx+2}: Missing PV Serial Number (solar_equipment_id)")
+            continue
+
+        unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
+        if not unit:
+            skipped.append(f"Row {idx+2}: Machine ID {shs_id} not found in database")
+            continue
+
+        # 校验冲突
+        if pv_id in existing_pv_map and existing_pv_map[pv_id][0] != unit.id:
+            bound_machine = existing_pv_map[pv_id][1]
+            skipped.append(f"Row {idx+2}: PV ID '{pv_id}' is already bound to machine '{bound_machine}'")
+            continue
+
+        unit.solar_equipment_id = pv_id
+        unit.updated_at = datetime.now()
+        existing_pv_map[pv_id] = (unit.id, unit.shs_machine_id)
+        updated_count += 1
+
+    if updated_count > 0:
+        db.commit()
+
+    return {"status": "success", "updated_count": updated_count, "skipped": skipped}
 
     if batch:
         db.add_all(batch)

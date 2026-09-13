@@ -160,6 +160,7 @@ class POSOfflineCustomerCreate(BaseModel):
 
     card_uuid: Optional[str] = None      # 离线绑定的卡片
     shs_machine_id: Optional[str] = None # 离线绑定的设备
+    solar_equipment_id: Optional[str] = None # 离线扫码绑定的 PV 光伏板序列号
     created_at: datetime                 # POS 端的实际操作时间
     operator_username: str               # 强制必填：离线操作的实际业务员用户名
 
@@ -167,6 +168,7 @@ class POSOfflineCustomerUpdate(BaseModel):
     customer_uuid: str
     card_uuid: Optional[str] = None
     shs_machine_id: Optional[str] = None
+    solar_equipment_id: Optional[str] = None # 离线扫码绑定的 PV 光伏板序列号
     installed_at: Optional[datetime] = None
 
 class POSLoginRequest(BaseModel):

@@ -25,8 +25,8 @@ gen = SnowflakeGenerator(2)
 def get_snowflake_id():
     return str(next(gen))
 
-def _bind_assets_sync(db: Session, customer_uuid: str, card_uuid: str = None, shs_id: str = None, installed_at: datetime = None):
-    """同步执行资产绑定逻辑：自动解绑旧资产，绑定新资产"""
+def _bind_assets_sync(db: Session, customer_uuid: str, card_uuid: str = None, shs_id: str = None, solar_equipment_id: str = None, installed_at: datetime = None):
+    """同步执行资产绑定逻辑：自动解绑旧资产，绑定新资产及 PV 序列号"""
     customer = db.query(Customer).filter(Customer.uuid == customer_uuid).first()
     if not customer: return False
 
@@ -55,6 +55,8 @@ def _bind_assets_sync(db: Session, customer_uuid: str, card_uuid: str = None, sh
         unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
         if unit:
             unit.customer_uuid, unit.shs_status, unit.bound_at = customer_uuid, 1, datetime.now()
+            if solar_equipment_id and solar_equipment_id.strip():
+                unit.solar_equipment_id = solar_equipment_id.strip()
             success = True
 
     if success and not customer.installed_at:
@@ -102,8 +104,8 @@ async def upload_offline_data(
             db.add(new_cust)
             db.flush()
             # 处理开户自带的绑定 (使用修正后的 ID)
-            if rc.card_uuid or rc.shs_machine_id:
-                _bind_assets_sync(db, final_uuid, rc.card_uuid, rc.shs_machine_id, rc.created_at)
+            if rc.card_uuid or rc.shs_machine_id or rc.solar_equipment_id:
+                _bind_assets_sync(db, final_uuid, rc.card_uuid, rc.shs_machine_id, rc.solar_equipment_id, rc.created_at)
             new_cust_count += 1
 
     # 3. 处理资产变更 (Binding with Remapping)
@@ -111,7 +113,7 @@ async def upload_offline_data(
     for inst in payload.asset_installations:
         # 自动识别并使用修正后的 ID
         target_uuid = id_remap.get(inst.customer_uuid, inst.customer_uuid)
-        if _bind_assets_sync(db, target_uuid, inst.card_uuid, inst.shs_machine_id, inst.installed_at):
+        if _bind_assets_sync(db, target_uuid, inst.card_uuid, inst.shs_machine_id, inst.solar_equipment_id, inst.installed_at):
             install_count += 1
     
     # 4. 处理交易流水 (Transactions with Remapping)
