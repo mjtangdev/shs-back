@@ -12,6 +12,7 @@ if [ ! -d ".venv" ]; then
     exit 1
 fi
 
-# 3. 启动后端服务
-echo "🔥 Running FastAPI server via ./.venv/bin/python main.py"
-./.venv/bin/python main.py
+# 3. 启动后端服务 (默认使用 8008 端口，避开 8000 冲突；也可以传入参数自定义端口，如: ./start_dev.sh 8080)
+PORT="${1:-8008}"
+echo "🔥 Running FastAPI server on Port ${PORT}..."
+PORT="${PORT}" ./.venv/bin/python main.py
