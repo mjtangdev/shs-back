@@ -287,11 +287,11 @@ def update_unit_pv_id(
 # --- 新增：独立 PV 序列号 Excel 绑定模板 ---
 @router.get("/import-pv-template")
 def get_solar_pv_import_template(current_user: Any = Depends(get_current_user)):
-    """获取独立 PV 光伏板序列号批量绑定模板"""
+    """获取独立 PV 光伏板序列号批量导入模板 (单列 solar_panels)"""
     df = pd.DataFrame(columns=[
-        "shs_machine_id", "solar_panels"
+        "solar_panels"
     ])
-    df.loc[0] = ["HT2026072000001", "PV2026091300001"]
+    df.loc[0] = ["CP26N-2-000001"]
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -311,7 +311,7 @@ async def import_solar_pv_ids(
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_finance_or_admin)
 ):
-    """通过 Excel 批量给现有主机设备绑定/更新 PV 太阳能板序列号"""
+    """通过 Excel 批量导入/更新 PV 太阳能板序列号"""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Invalid Excel file")
 
@@ -321,14 +321,19 @@ async def import_solar_pv_ids(
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
 
     updated_count, skipped = 0, []
-    # 预加载现有数据中的 PV 序列号以防冲突
-    existing_pv_map = {} # pv_id -> (unit_id, shs_machine_id)
-    for row in db.execute(text("SELECT id, shs_machine_id, solar_equipment_id FROM solar_units")).all():
-        if row[2]:
-            existing_pv_map[row[2]] = (row[0], row[1])
+    # 预加载所有已存在的 PV 序列号以防重复
+    existing_pv_set = set()
+    for row in db.execute(text("SELECT solar_equipment_id FROM solar_units WHERE solar_equipment_id IS NOT NULL")).all():
+        if row[0]:
+            existing_pv_set.add(str(row[0]).strip())
+
+    # 查询所有处于在库且尚未绑定 PV 板的主机设备按 ID 顺序排序
+    unbound_units = db.query(SolarUnit).filter(
+        or_(SolarUnit.solar_equipment_id == None, SolarUnit.solar_equipment_id == '')
+    ).order_by(SolarUnit.id.asc()).all()
+    unbound_index = 0
 
     for idx, row in df.iterrows():
-        shs_id = str(row.get('shs_machine_id', '')).strip() if row.get('shs_machine_id') else ''
         # 支持多种别名表头：solar_panels / solar_panel / solar_equipment_id / pv_sn
         pv_id = str(
             row.get('solar_panels') or 
@@ -338,27 +343,36 @@ async def import_solar_pv_ids(
             ''
         ).strip()
 
-        if not shs_id:
-            skipped.append(f"Row {idx+2}: Missing machine ID (shs_machine_id)")
-            continue
+        shs_id = str(row.get('shs_machine_id', '')).strip() if row.get('shs_machine_id') else ''
+
         if not pv_id:
-            skipped.append(f"Row {idx+2}: Missing PV Serial Number (solar_equipment_id)")
+            skipped.append(f"Row {idx+2}: Missing PV Serial Number (solar_panels)")
             continue
 
-        unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
-        if not unit:
-            skipped.append(f"Row {idx+2}: Machine ID {shs_id} not found in database")
+        # 查重
+        if pv_id in existing_pv_set:
+            skipped.append(f"Row {idx+2}: PV ID '{pv_id}' already exists in system")
             continue
 
-        # 校验冲突
-        if pv_id in existing_pv_map and existing_pv_map[pv_id][0] != unit.id:
-            bound_machine = existing_pv_map[pv_id][1]
-            skipped.append(f"Row {idx+2}: PV ID '{pv_id}' is already bound to machine '{bound_machine}'")
-            continue
+        unit = None
+        # 情况 1：如果 Excel 显式指定了主机 ID shs_machine_id
+        if shs_id:
+            unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
+            if not unit:
+                skipped.append(f"Row {idx+2}: Machine ID '{shs_id}' not found in database")
+                continue
+        else:
+            # 情况 2：单列纯 PV 列表，自动顺延匹配在库未绑定 PV 的设备
+            if unbound_index < len(unbound_units):
+                unit = unbound_units[unbound_index]
+                unbound_index += 1
+            else:
+                skipped.append(f"Row {idx+2}: No available in-stock machine to bind PV '{pv_id}'")
+                continue
 
         unit.solar_equipment_id = pv_id
         unit.updated_at = datetime.now()
-        existing_pv_map[pv_id] = (unit.id, unit.shs_machine_id)
+        existing_pv_set.add(pv_id)
         updated_count += 1
 
     if updated_count > 0:

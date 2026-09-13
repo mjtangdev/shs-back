@@ -1998,3 +1998,8 @@ DETAIL:  Failing row contains (2, superadmin, $2b$12$mDXxZZRxozMuAct3VSicDOeGmHp
 2026-06-30 11:39:15,030 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
 2026-06-30 11:39:15,031 - INFO - Added job "perform_db_backup" to job store "default"
 2026-06-30 11:39:15,031 - INFO - Scheduler started
+2026-09-13 11:00:16,733 - INFO - 🚀 SHS Backend Starting...
+2026-09-13 11:00:16,823 - INFO - ✅ Database ready and sequences synced.
+2026-09-13 11:00:16,840 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-09-13 11:00:16,840 - INFO - Added job "perform_db_backup" to job store "default"
+2026-09-13 11:00:16,840 - INFO - Scheduler started
