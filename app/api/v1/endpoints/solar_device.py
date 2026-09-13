@@ -163,7 +163,7 @@ def create_solar_unit(
 def get_solar_import_template(current_user: Any = Depends(get_current_user)):
     """获取设备导入 Excel 模板 (主机与可选 PV)"""
     df = pd.DataFrame(columns=[
-        "shs_machine_id", "solar_equipment_id", "production_date"
+        "shs_machine_id", "solar_panels", "production_date"
     ])
     # 示例数据
     df.loc[0] = ["HT2026072000001", "PV2026091300001", "2024-01-01"]
