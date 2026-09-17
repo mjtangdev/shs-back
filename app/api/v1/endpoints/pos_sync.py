@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func
 from datetime import datetime, timedelta
-from typing import Any, List
+from typing import Any, List, Optional
 
 from app.api import deps
 from app.models.pos import POSMachine
@@ -12,7 +12,7 @@ from app.models.config import ProviderConfig
 from app.models.pos_staging import POSStagingTransaction, POSStagingCustomer
 from app.models.users import User
 from app.models.card import Card
-from app.models.solar_device import SolarUnit
+from app.models.solar_device import SolarUnit, SolarPVPanel
 from app.models.customer import Customer
 from app.models.transaction import TransactionLog
 from app.schemas.pos import POSSyncResponse, POSSyncUploadRequest
@@ -25,14 +25,27 @@ gen = SnowflakeGenerator(2)
 def get_snowflake_id():
     return str(next(gen))
 
+def clean_str(v: Any) -> Optional[str]:
+    """清洗空值辅助函数：将 "-", "", "null", "None" 统一清洗转为 None"""
+    if not v:
+        return None
+    s = str(v).strip()
+    if s in ["", "-", "null", "NULL", "None"]:
+        return None
+    return s
+
 def _bind_assets_sync(db: Session, customer_uuid: str, card_uuid: str = None, shs_id: str = None, solar_equipment_id: str = None, installed_at: datetime = None):
     """同步执行资产绑定逻辑：自动解绑旧资产，绑定新资产及 PV 序列号"""
     customer = db.query(Customer).filter(Customer.uuid == customer_uuid).first()
     if not customer: return False
 
+    c_card_id = clean_str(card_uuid)
+    c_shs_id = clean_str(shs_id)
+    c_pv_sn = clean_str(solar_equipment_id)
+
     success = False
-    if card_uuid:
-        u_card_id = card_uuid.upper()
+    if c_card_id:
+        u_card_id = c_card_id.upper()
         # 1. 解绑并作废旧卡 (如果存在且不同)
         db.query(Card).filter(Card.customer_uuid == customer_uuid, Card.card_uuid != u_card_id).update({
             "status": 3, "customer_uuid": None, "updated_at": datetime.now()
@@ -46,18 +59,52 @@ def _bind_assets_sync(db: Session, customer_uuid: str, card_uuid: str = None, sh
             card.customer_uuid, card.status, card.bound_at = customer_uuid, 1, datetime.now()
         success = True
     
-    if shs_id:
-        # 1. 释放旧设备
-        db.query(SolarUnit).filter(SolarUnit.customer_uuid == customer_uuid, SolarUnit.shs_machine_id != shs_id).update({
-            "shs_status": 0, "customer_uuid": None, "updated_at": datetime.now()
-        })
-        # 2. 占用新设备
-        unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
+    existing_pv_sn = None
+    if c_shs_id:
+        # 1. 查找并释放旧设备（记录旧主机上完好的 PV 板 SN，以便换主机时自动继承）
+        old_units = db.query(SolarUnit).filter(
+            SolarUnit.customer_uuid == customer_uuid, 
+            SolarUnit.shs_machine_id != c_shs_id
+        ).all()
+
+        for old_u in old_units:
+            if old_u.solar_equipment_id:
+                existing_pv_sn = old_u.solar_equipment_id
+            old_u.shs_status = 3 # 将旧主机解绑并标记为更换/报废
+            old_u.customer_uuid = None
+            old_u.updated_at = datetime.now()
+
+        # 2. 占用新主机 (严格库存校验：必须已存在于系统数据库中，否则拒绝非法绑定)
+        unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == c_shs_id).first()
         if unit:
             unit.customer_uuid, unit.shs_status, unit.bound_at = customer_uuid, 1, datetime.now()
-            if solar_equipment_id and solar_equipment_id.strip():
-                unit.solar_equipment_id = solar_equipment_id.strip()
             success = True
+        else:
+            print(f"⚠️ 绑定跳过：主机 SN '{c_shs_id}' 未提前录入系统库存，拒绝自动创建！")
+
+    # 3. 核心 PV 板判断与绑定 (严格库存校验：必须已存在于数据库 solar_pv_panels 中)
+    target_pv = c_pv_sn if c_pv_sn else existing_pv_sn
+    if target_pv:
+        pv = db.query(SolarPVPanel).filter(SolarPVPanel.pv_sn == target_pv).first()
+        if pv:
+            # 仅当 PV 板存在于系统库存时才允许绑定激活
+            pv.shs_machine_id = c_shs_id or pv.shs_machine_id
+            pv.customer_uuid = customer_uuid
+            pv.customer_name = f"{customer.first_name} {customer.last_name}"
+            pv.status = 1
+            pv.bound_at = installed_at or datetime.now()
+
+            # 同步更新挂载的主机记录
+            if c_shs_id:
+                unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == c_shs_id).first()
+                if unit: unit.solar_equipment_id = target_pv
+            else:
+                cust_unit = db.query(SolarUnit).filter(SolarUnit.customer_uuid == customer_uuid).first()
+                if cust_unit:
+                    cust_unit.solar_equipment_id = target_pv
+            success = True
+        else:
+            print(f"⚠️ 绑定跳过：PV 板序列号 '{target_pv}' 未提前录入系统库存，拒绝自动创建！")
 
     if success and not customer.installed_at:
         customer.installed_at = installed_at or datetime.now()
@@ -103,17 +150,18 @@ async def upload_offline_data(
             )
             db.add(new_cust)
             db.flush()
-            # 处理开户自带的绑定 (使用修正后的 ID)
-            if rc.card_uuid or rc.shs_machine_id or rc.solar_equipment_id:
-                _bind_assets_sync(db, final_uuid, rc.card_uuid, rc.shs_machine_id, rc.solar_equipment_id, rc.created_at)
+            # 提取 PV 字段 (优先 pv_sn，兼容 solar_equipment_id)
+            rc_pv = rc.pv_sn or rc.solar_equipment_id
+            if rc.card_uuid or rc.shs_machine_id or rc_pv:
+                _bind_assets_sync(db, final_uuid, rc.card_uuid, rc.shs_machine_id, rc_pv, rc.created_at)
             new_cust_count += 1
 
     # 3. 处理资产变更 (Binding with Remapping)
     install_count = 0
     for inst in payload.asset_installations:
-        # 自动识别并使用修正后的 ID
         target_uuid = id_remap.get(inst.customer_uuid, inst.customer_uuid)
-        if _bind_assets_sync(db, target_uuid, inst.card_uuid, inst.shs_machine_id, inst.solar_equipment_id, inst.installed_at):
+        inst_pv = inst.pv_sn or inst.solar_equipment_id
+        if _bind_assets_sync(db, target_uuid, inst.card_uuid, inst.shs_machine_id, inst_pv, inst.installed_at):
             install_count += 1
     
     # 4. 处理交易流水 (Transactions with Remapping)
@@ -208,15 +256,22 @@ def pos_bootstrap_sync(
     customers_data = []
     bound_card_uuids = []
     bound_shs_ids = []
+    bound_pv_sns = []
     for c in customers_raw:
         c_card = c.cards[0].card_uuid if c.cards else None
         c_shs = c.solar_units[0].shs_machine_id if c.solar_units else None
+        c_pv = c.solar_units[0].solar_equipment_id if c.solar_units else None
         if c_card: bound_card_uuids.append(c_card)
         if c_shs: bound_shs_ids.append(c_shs)
+        if c_pv: bound_pv_sns.append(c_pv)
         
         customers_data.append({
             "id": c.id, "uuid": c.uuid, "first_name": c.first_name, "last_name": c.last_name,
-            "card_uuid": c_card or "", "shs_machine_id": c_shs or "", "status": c.status,
+            "card_uuid": c_card or None, 
+            "shs_machine_id": c_shs or None, 
+            "pv_sn": c_pv or None, 
+            "solar_equipment_id": c_pv or None,
+            "status": c.status,
             "total_recharged_days": float(c.total_recharged_days or 0),
             "expiry_time": c.expiry_time, "region_name": c.region.name if c.region else "Unknown",
             "created_at": c.created_at,
@@ -233,6 +288,12 @@ def pos_bootstrap_sync(
     if bound_shs_ids:
         unit_filters.append(SolarUnit.shs_machine_id.in_(bound_shs_ids))
     full_units = db.query(SolarUnit).filter(or_(*unit_filters)).limit(1000).all()
+
+    # 查在库待使用的 PV 板 + 本区域已绑定的 PV 板
+    pv_filters = [SolarPVPanel.status == 0]
+    if bound_pv_sns:
+        pv_filters.append(SolarPVPanel.pv_sn.in_(bound_pv_sns))
+    full_pvs = db.query(SolarPVPanel).filter(or_(*pv_filters)).limit(1000).all()
 
     # 4. 获取这些客户最近的流水记录 (最近 1000 条作为参考池)
     customer_uuids = [c["uuid"] for c in customers_data]
@@ -266,5 +327,6 @@ def pos_bootstrap_sync(
         "customers": customers_data, 
         "cards": full_cards, 
         "solar_units": full_units,
+        "pv_panels": full_pvs,
         "transactions": recent_transactions
     }

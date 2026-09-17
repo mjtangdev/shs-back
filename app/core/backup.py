@@ -10,7 +10,7 @@ from app.models.config import ProviderConfig
 from app.models.users import User
 from app.models.customer import Customer
 from app.models.card import Card
-from app.models.solar_device import SolarUnit
+from app.models.solar_device import SolarUnit, SolarPVPanel
 from app.models.transaction import TransactionLog
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,7 @@ def perform_db_backup():
             "customers": [c.__dict__ for c in db.query(Customer).all()],
             "cards": [c.__dict__ for c in db.query(Card).all()],
             "solar_units": [s.__dict__ for s in db.query(SolarUnit).all()],
+            "solar_pv_panels": [p.__dict__ for p in db.query(SolarPVPanel).all()],
             "pos_machines": [p.__dict__ for p in db.query(POSMachine).all()],
             "pos_action_logs": [l.__dict__ for l in db.query(POSActionLog).all()],
             "transactions": [t.__dict__ for t in db.query(TransactionLog).all()]

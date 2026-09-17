@@ -107,7 +107,7 @@ def read_users(
     if current_admin.role == 1:
         query = query.filter(User.role != 0)
 
-    users = query.offset(skip).limit(limit).all()
+    users = query.order_by(User.id.desc()).offset(skip).limit(limit).all()
     
     # 这里可以进一步根据 current_admin 的地区权限过滤列表
     # 例如：如果管理员只能看自己市的用户...

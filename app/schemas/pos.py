@@ -65,6 +65,8 @@ class POSSyncCustomerItem(BaseModel):
     last_name: str
     card_uuid: str | None = None
     shs_machine_id: str | None = None
+    pv_sn: str | None = None                  # 👈 新增：绑定的 PV 板 SN
+    solar_equipment_id: str | None = None    # 别名兼容
     status: int  # 1: 活跃, 0: 停用
     
     # 新增字段同步给 POS / New fields for POS
@@ -106,6 +108,16 @@ class POSSyncSolarUnitItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class POSSyncPVPanelItem(BaseModel):
+    id: int
+    pv_sn: str
+    status: int
+    shs_machine_id: Optional[str] = None
+    customer_uuid: Optional[str] = None
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 # --- POS 离线数据上传模型 ---
 
 class POSOfflineTransaction(BaseModel):
@@ -137,6 +149,7 @@ class POSSyncResponse(BaseModel):
     # 5. 在库未绑定资产列表 (用于离线绑定挑选)
     cards: List[POSSyncCardItem] = []
     solar_units: List[POSSyncSolarUnitItem] = []
+    pv_panels: List[POSSyncPVPanelItem] = [] # 👈 新增：在库未绑定独立 PV 光伏板资产列表
     # 6. 历史交易流水
     transactions: List[POSOfflineTransaction] = []
 
@@ -158,17 +171,19 @@ class POSOfflineCustomerCreate(BaseModel):
     representative_name: Optional[str] = None
     rep_relationship: Optional[str] = "-"
 
-    card_uuid: Optional[str] = None      # 离线绑定的卡片
-    shs_machine_id: Optional[str] = None # 离线绑定的设备
-    solar_equipment_id: Optional[str] = None # 离线扫码绑定的 PV 光伏板序列号
-    created_at: datetime                 # POS 端的实际操作时间
-    operator_username: str               # 强制必填：离线操作的实际业务员用户名
+    card_uuid: Optional[str] = None          # 离线绑定的卡片
+    shs_machine_id: Optional[str] = None     # 离线绑定的 System Box 主机
+    pv_sn: Optional[str] = None              # 离线扫码绑定的 PV 光伏板序列号
+    solar_equipment_id: Optional[str] = None # 别名兼容
+    created_at: datetime                     # POS 端的实际操作时间
+    operator_username: str                   # 强制必填：离线操作的实际业务员用户名
 
 class POSOfflineCustomerUpdate(BaseModel):
     customer_uuid: str
     card_uuid: Optional[str] = None
     shs_machine_id: Optional[str] = None
-    solar_equipment_id: Optional[str] = None # 离线扫码绑定的 PV 光伏板序列号
+    pv_sn: Optional[str] = None              # 离线扫码绑定的 PV 光伏板序列号
+    solar_equipment_id: Optional[str] = None # 别名兼容
     installed_at: Optional[datetime] = None
 
 class POSLoginRequest(BaseModel):
@@ -183,9 +198,9 @@ class POSLoginRequest(BaseModel):
 
 class POSSyncUploadRequest(BaseModel):
     pos_sn: Optional[str] = None
-    # 按照业务逻辑解耦的三个数据桶
-    new_registrations: List[POSOfflineCustomerCreate] = [] # 新开户人员资料
+    # 按照业务逻辑解耦的三个数据桶 (兼容 new_registrations 与 registered_customers)
+    new_registrations: List[POSOfflineCustomerCreate] = Field(default=[], alias="registered_customers") 
     asset_installations: List[POSOfflineCustomerUpdate] = [] # 安装/绑定动作
     transactions: List[POSOfflineTransaction] = [] # 充值流水
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

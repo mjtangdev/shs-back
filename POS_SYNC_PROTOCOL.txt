@@ -1,0 +1,160 @@
+================================================================================
+           SHS POS 终端离线同步与资产绑定接口与协议说明文档
+================================================================================
+
+一、 整体设计架构 (System Architecture)
+--------------------------------------------------------------------------------
+POS 终端采用“开机/连网下载白名单 ➡️ 本地离线操作 ➡️ 连网批量上传同步”机制。
+支持在无网/弱网山区全离线进行客户开户、充值续费、换卡、换 System Box 主机与换 PV 太阳能光伏板。
+
+
+二、 数据下发接口 (Bootstrap Download)
+--------------------------------------------------------------------------------
+接口用途: 当 POS 终端开机、登录或点击“一键同步”时调用，下载本业务员辖区内的白名单资产池。
+HTTP 方法: GET
+完整路径: /api/v1/pos-sync/bootstrap
+请求 Header:
+  Authorization: Bearer <Operator Token>
+
+响应 JSON 数据结构:
+{
+  "server_time": "2026-09-13T23:50:00",
+  "daily_rate": 7.0,
+  "region_name": "Dagupan",
+  "is_locked": false,
+
+  "customers": [
+    {
+      "id": 2,
+      "uuid": "03000001",
+      "first_name": "John",
+      "last_name": "Doe",
+      "card_uuid": "A1B2C3D4",
+      "shs_machine_id": "HT2026072000001",
+      "expiry_time": "2026-10-13T00:00:00",
+      "total_recharged_days": 30.0,
+      "status": 1
+    }
+  ],
+
+  "cards": [
+    {
+      "id": 10,
+      "card_uuid": "A1B2C3D4",
+      "card_number": "00880001",
+      "status": 0
+    }
+  ],
+
+  "solar_units": [
+    {
+      "id": 15,
+      "shs_machine_id": "HT2026072000001",
+      "solar_equipment_id": null,
+      "shs_status": 0
+    }
+  ],
+
+  "pv_panels": [
+    {
+      "id": 101,
+      "pv_sn": "CP26N-2-000001",
+      "status": 0,
+      "shs_machine_id": null,
+      "customer_uuid": null
+    }
+  ],
+
+  "transactions": []
+}
+
+
+三、 离线数据批量上传接口 (Offline Data Upload)
+--------------------------------------------------------------------------------
+接口用途: POS 恢复连网后，将离线积累的开户、换设备、充值记录打包一次性上传。
+HTTP 方法: POST
+完整路径: /api/v1/pos-sync/upload
+请求 Header:
+  Authorization: Bearer <Operator Token>
+
+请求 Payload (JSON):
+{
+  "pos_sn": "POS202609001",
+
+  "registered_customers": [
+    {
+      "uuid": "03000002",
+      "first_name": "Mary",
+      "last_name": "Smith",
+      "mobile": "09123456789",
+      "gender": "female",
+      "address": "Street 123",
+      "region_id": 3,
+
+      "card_uuid": "B2C3D4E5",
+      "shs_machine_id": "HT2026072000002",
+      "pv_sn": "CP26N-2-000002",
+
+      "created_at": "2026-09-13T12:00:00",
+      "operator_username": "opera01"
+    }
+  ],
+
+  "asset_installations": [
+    {
+      "customer_uuid": "03000001",
+      "card_uuid": "A1B2C3D4",
+      "shs_machine_id": "HT2026072000001",
+      "pv_sn": "CP26N-2-000001",
+      "installed_at": "2026-09-13T12:30:00"
+    }
+  ],
+
+  "transactions": [
+    {
+      "transaction_id": "TX_POS01_20260913_001",
+      "customer_uuid": "03000001",
+      "card_uuid": "A1B2C3D4",
+      "shs_machine_id": "HT2026072000001",
+      "days": 30.0,
+      "amount": 210.0,
+      "transaction_time": "2026-09-13T12:30:00",
+      "action_type": "RECHARGE",
+      "operator_username": "opera01"
+    }
+  ]
+}
+
+响应 Example (JSON):
+{
+  "status": "success",
+  "processed": {
+    "new_customers": 1,
+    "asset_installations": 1,
+    "transactions": 1
+  },
+  "server_time": "2026-09-13 14:00:00"
+}
+
+
+四、 硬件售后维修逻辑说明 (Asset Replacement Handling)
+--------------------------------------------------------------------------------
+1. 只换 PV 板 (主机未损坏):
+   POS 上传新的 pv_sn。旧 PV 板自动在独立表中标记为 3 (Damaged 报废解绑)，新 PV 板激活为 1 并绑定至主机。
+
+2. 只换 System Box 主机 (PV 板未损坏):
+   POS 上传新的 shs_machine_id。旧主机解除绑定，新主机自动继承原客户名下未损坏的 PV 板。
+
+3. 主机与 PV 板全部换新:
+   同时上传新 shs_machine_id 和新 pv_sn。旧资产全部解绑报废，新资产组合激活。
+
+
+五、 POS App 交互与缓存清理规范 (Client UI & Cache Specs)
+--------------------------------------------------------------------------------
+1. 缓存清理触发时机:
+   a. 开卡/激活中断场景: 业务员取消开卡或退回到【开卡设备列表】界面时，POS 应立即清理本次开卡流程中的临时缓存。
+   b. 开卡/激活成功场景: 业务员在开卡成功结果页点击【返回首页】按钮时，清理缓存并重置状态。
+
+2. UI 按钮调整:
+   a. 移除【给其他人充值 (Recharge for Others)】按钮入口。
+================================================================================

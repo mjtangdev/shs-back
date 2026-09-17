@@ -12,7 +12,7 @@ from app.models.customer import Customer
 from app.models.card import Card
 from app.models.pos import POSMachine, POSActionLog
 from app.models.config import ProviderConfig
-from app.models.solar_device import SolarUnit
+from app.models.solar_device import SolarUnit, SolarPVPanel
 from app.models.transaction import TransactionLog
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ def perform_db_restore(json_content: dict = None, json_file_path: str = "product
 
         # 1. 清理业务数据
         tables = [
-            "transaction_logs", "cards", "solar_units", "pos_action_logs", 
+            "transaction_logs", "cards", "solar_units", "solar_pv_panels", "pos_action_logs", 
             "pos_machines", "customers", "business_entities", "users", 
             "provider_configs", "regions"
         ]
@@ -126,6 +126,15 @@ def perform_db_restore(json_content: dict = None, json_file_path: str = "product
                 if s.get('production_date'): s['production_date'] = datetime.fromisoformat(s['production_date'])
                 unit_list.append(s)
             db.bulk_insert_mappings(SolarUnit, unit_list)
+
+        if "solar_pv_panels" in json_content:
+            pv_list = []
+            for p in json_content["solar_pv_panels"]:
+                if p.get('created_at'): p['created_at'] = datetime.fromisoformat(p['created_at'])
+                if p.get('bound_at'): p['bound_at'] = datetime.fromisoformat(p['bound_at'])
+                if p.get('production_date'): p['production_date'] = datetime.fromisoformat(p['production_date'])
+                pv_list.append(p)
+            db.bulk_insert_mappings(SolarPVPanel, pv_list)
 
         if "pos_machines" in json_content:
             pos_list = []

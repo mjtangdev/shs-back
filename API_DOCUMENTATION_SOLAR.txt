@@ -1,0 +1,193 @@
+================================================================================
+           SHS 后端 API 接口文档：太阳能设备 (System Box) 与 PV 光伏板
+================================================================================
+
+基础配置说明 (General Configuration)
+--------------------------------------------------------------------------------
+基础 Base URL: http://<服务器IP>:8008/api/v1/solar_device
+请求 Header:
+  Authorization: Bearer <Admin/Finance/Operator Token>
+  Content-Type: application/json
+
+
+================================================================================
+模块一：System Box（主机套件）管理接口
+================================================================================
+
+1. 获取 System Box 主机列表
+--------------------------------------------------------------------------------
+HTTP 方法: GET
+接口路径: /api/v1/solar_device/
+Query 参数:
+  skip (int, 默认 0): 分页偏移量
+  limit (int, 默认 50): 每页条数
+  search (string, 选填): 模糊搜索 (按主机 SN、关联客户姓名)
+  status (int, 选填): 状态筛选 (0: 在库未绑定, 1: 已激活绑定)
+  region_id (int, 选填): 区域过滤
+
+响应 Example (JSON):
+{
+  "total": 100,
+  "items": [
+    {
+      "id": 15,
+      "shs_machine_id": "HT2026072000001",
+      "solar_equipment_id": "CP26N-2-000001",
+      "radio_id": "HT20260720000012",
+      "flashlight_id": "HT20260720000013",
+      "led_light_id": "HT20260720000014",
+      "status": 0,
+      "customer_id": 2,
+      "customer_uuid": "03000001",
+      "customer_name": "John Doe",
+      "city_name": "Pangasinan",
+      "town_name": "Dagupan",
+      "production_date": "2024-01-01T00:00:00",
+      "created_at": "2026-09-13T10:00:00",
+      "bound_at": null
+    }
+  ]
+}
+
+
+2. 单个创建 System Box 主机
+--------------------------------------------------------------------------------
+HTTP 方法: POST
+接口路径: /api/v1/solar_device/create
+说明: 无需填写 PV 序列号，后端会自动分配生成其余 3 个配件 SN。
+
+请求 Payload (JSON):
+{
+  "shs_machine_id": "HT2026072000001",
+  "production_date": "2024-01-01T00:00:00",
+  "city": "Pangasinan",
+  "town": "Dagupan"
+}
+
+响应 Example (JSON):
+{
+  "status": "success",
+  "id": 15
+}
+
+
+3. 给指定 System Box 主机拼装/绑定 PV 序列号
+--------------------------------------------------------------------------------
+HTTP 方法: PUT
+接口路径: /api/v1/solar_device/{unit_id}/pv
+说明: {unit_id} 为主机的物理自增 id。
+
+请求 Payload (JSON):
+{
+  "solar_equipment_id": "CP26N-2-000001"
+}
+
+
+4. 下载 System Box 主机批量导入模板
+--------------------------------------------------------------------------------
+HTTP 方法: GET
+接口路径: /api/v1/solar_device/import-template
+返回: solar_unit_import_template.xlsx 文件流
+
+
+5. 批量导入 System Box 主机
+--------------------------------------------------------------------------------
+HTTP 方法: POST
+接口路径: /api/v1/solar_device/import
+Body 类型: multipart/form-data (file: Excel 文件)
+
+
+6. 重置/解绑 System Box 主机
+--------------------------------------------------------------------------------
+HTTP 方法: POST
+接口路径: /api/v1/solar_device/{unit_id}/reset
+
+
+7. 删除闲置 System Box 主机
+--------------------------------------------------------------------------------
+HTTP 方法: DELETE
+接口路径: /api/v1/solar_device/{unit_id}
+
+
+================================================================================
+模块二：PV 太阳能光伏板（独立解耦资产）管理接口
+================================================================================
+
+1. 获取独立 PV 光伏板列表
+--------------------------------------------------------------------------------
+HTTP 方法: GET
+接口路径: /api/v1/solar_device/pv-list
+Query 参数:
+  skip (int, 默认 0): 分页偏移量
+  limit (int, 默认 50): 每页条数
+  search (string, 选填): 模糊搜索 (按 PV SN、绑定主机 SN、客户姓名)
+  status (int, 选填): 状态筛选 (0: 在库待绑定, 1: 已激活绑定, 2: 冻结, 3: 损坏报废)
+
+响应 Example (JSON):
+{
+  "total": 50,
+  "items": [
+    {
+      "id": 101,
+      "pv_sn": "CP26N-2-000001",
+      "status": 0,
+      "shs_machine_id": "-",
+      "customer_uuid": "-",
+      "customer_name": "-",
+      "city_name": "Pangasinan",
+      "town_name": "Dagupan",
+      "production_date": "2024-01-01T00:00:00",
+      "created_at": "2026-09-13T10:00:00",
+      "bound_at": null,
+      "updated_at": "2026-09-13T10:00:00"
+    }
+  ]
+}
+
+
+2. 单个手动录入独立 PV 光伏板
+--------------------------------------------------------------------------------
+HTTP 方法: POST
+接口路径: /api/v1/solar_device/pv
+
+请求 Payload (JSON):
+{
+  "pv_sn": "CP26N-2-000001",
+  "production_date": "2024-01-01T00:00:00",
+  "city": "Pangasinan",
+  "town": "Dagupan"
+}
+
+
+3. 修改 PV 光伏板属性/状态 (支持标记损坏报废)
+--------------------------------------------------------------------------------
+HTTP 方法: PUT
+接口路径: /api/v1/solar_device/pv/{pv_id}
+说明: {pv_id} 为 pv-list 中返回的物理 id。status 取值: 0: 重置为在库, 1: 激活绑定, 2: 冻结, 3: 损坏/报废解绑。
+
+请求 Payload (JSON):
+{
+  "status": 3
+}
+
+
+4. 删除闲置 PV 光伏板
+--------------------------------------------------------------------------------
+HTTP 方法: DELETE
+接口路径: /api/v1/solar_device/pv/{pv_id}
+
+
+5. 下载纯 PV 光伏板批量导入模板
+--------------------------------------------------------------------------------
+HTTP 方法: GET
+接口路径: /api/v1/solar_device/import-pv-template
+导出 Excel 表头: solar_panels, production_date
+
+
+6. 批量导入独立 PV 光伏板
+--------------------------------------------------------------------------------
+HTTP 方法: POST
+接口路径: /api/v1/solar_device/import-pv
+Body 类型: multipart/form-data (file: Excel 文件)
+说明: 自动查重跳过；未填 production_date 时自动填充为当前时间的前 15 天。
+================================================================================

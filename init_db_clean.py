@@ -17,8 +17,13 @@ from sqlalchemy import text
 def init_db_clean():
     print(f"--- [Clean Mode] 数据库连接尝试：{engine.url.host}:{engine.url.port}/{engine.url.database} ---")
     
-    # 1. 强制重置所有表结构
-    Base.metadata.drop_all(bind=engine)
+    # 1. 强制重置所有表结构 (使用 DROP SCHEMA CASCADE 彻底清理旧外键约束)
+    try:
+        with engine.begin() as conn:
+            conn.execute(text("DROP SCHEMA public CASCADE; CREATE SCHEMA public;"))
+    except Exception as e:
+        print(f"Warning during schema reset: {e}")
+
     Base.metadata.create_all(bind=engine)
     
     db = SessionLocal()

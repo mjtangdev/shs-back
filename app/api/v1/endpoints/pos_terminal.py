@@ -40,7 +40,7 @@ def get_pos_terminals(
         query = query.filter(or_(POSMachine.pos_sn.ilike(sf), POSMachine.pos_code.ilike(sf)))
     
     total = query.count()
-    items = query.order_by(POSMachine.pos_code.asc()).offset(skip).limit(limit).all()
+    items = query.order_by(POSMachine.id.desc()).offset(skip).limit(limit).all()
     
     # 由于 assigned_user_name 在 Response 模型里是可选的，SQLAlchemy 会自动处理映射
     return {"total": total, "items": items}

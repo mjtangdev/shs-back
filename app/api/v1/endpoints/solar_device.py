@@ -1,6 +1,6 @@
 import io
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
@@ -8,11 +8,13 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, text
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
-from app.models.solar_device import SolarUnit
+from app.models.solar_device import SolarUnit, SolarPVPanel
 from app.models.customer import Customer
 from app.models.org import Region
-# 注意：即便不链接关系，我们可能仍需搜索 Customer 表，但暂时为了启动，我们只查 SolarUnit 本身
-from app.schemas.solar_device import SolarUnitCreate, SolarUnitResponse, SolarUnitList, SolarUnitPVBind
+from app.schemas.solar_device import (
+    SolarUnitCreate, SolarUnitResponse, SolarUnitList, SolarUnitPVBind,
+    SolarPVPanelCreate, SolarPVPanelItem, SolarPVPanelList, SolarPVPanelUpdate
+)
 
 router = APIRouter()
 
@@ -26,8 +28,11 @@ def get_solar_units(
     status: Optional[int] = Query(None),
     current_user: Any = Depends(get_current_user)
 ):
-    # 联表查询：SolarUnit -> Customer -> Region
-    query = db.query(SolarUnit).outerjoin(
+    # 联表查询：仅获取拥有 System Box 主机 (shs_machine_id 不为空) 的设备记录
+    query = db.query(SolarUnit).filter(
+        SolarUnit.shs_machine_id.isnot(None), 
+        SolarUnit.shs_machine_id != ''
+    ).outerjoin(
         Customer, SolarUnit.customer_uuid == Customer.uuid
     ).options(
         joinedload(SolarUnit.customer).joinedload(Customer.region).joinedload(Region.parent)
@@ -73,7 +78,7 @@ def get_solar_units(
         ))
 
     total = query.count()
-    units = query.order_by(SolarUnit.updated_at.desc()).offset(skip).limit(limit).all()
+    units = query.order_by(SolarUnit.id.desc()).offset(skip).limit(limit).all()
 
     items = []
     for u in units:
@@ -96,11 +101,11 @@ def get_solar_units(
 
         items.append({
             "id": u.id, 
-            "shs_machine_id": u.shs_machine_id,
-            "solar_equipment_id": u.solar_equipment_id, 
-            "radio_id": u.radio_id,
-            "flashlight_id": u.flashlight_id, 
-            "led_light_id": u.led_light_id,
+            "shs_machine_id": u.shs_machine_id or "-",
+            "solar_equipment_id": u.solar_equipment_id or "-", 
+            "radio_id": u.radio_id or "-",
+            "flashlight_id": u.flashlight_id or "-", 
+            "led_light_id": u.led_light_id or "-",
             "status": u.shs_status, 
             "customer_id": cust_id,
             "customer_uuid": str(u.customer_uuid) if u.customer_uuid else "-",
@@ -232,13 +237,17 @@ async def import_solar_units(
         if is_duplicate:
             continue
         
+        default_pdate = datetime.now() - timedelta(days=15)
+        parsed_pdate = pd.to_datetime(row.get('production_date'), errors='coerce') if row.get('production_date') else None
+        pdate = parsed_pdate.to_pydatetime() if pd.notnull(parsed_pdate) else default_pdate
+
         batch.append(SolarUnit(
             shs_machine_id=shs_id, 
             solar_equipment_id=s_id,
             radio_id=r_id,
             flashlight_id=f_id,
             led_light_id=l_id,
-            production_date=pd.to_datetime(row.get('production_date', datetime.now()), errors='coerce') or datetime.now(),
+            production_date=pdate,
             shs_status=0, 
             created_at=datetime.now()
         ))
@@ -287,11 +296,11 @@ def update_unit_pv_id(
 # --- 新增：独立 PV 序列号 Excel 绑定模板 ---
 @router.get("/import-pv-template")
 def get_solar_pv_import_template(current_user: Any = Depends(get_current_user)):
-    """获取独立 PV 光伏板序列号批量导入模板 (单列 solar_panels)"""
+    """获取独立 PV 光伏板序列号批量导入模板 (solar_panels 与 production_date)"""
     df = pd.DataFrame(columns=[
-        "solar_panels"
+        "solar_panels", "production_date"
     ])
-    df.loc[0] = ["CP26N-2-000001"]
+    df.loc[0] = ["CP26N-2-000001", "2024-01-01"]
 
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -311,7 +320,7 @@ async def import_solar_pv_ids(
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_finance_or_admin)
 ):
-    """通过 Excel 批量导入/更新 PV 太阳能板序列号"""
+    """通过 Excel 批量导入/更新 PV 太阳能板序列号 (支持生产日期)"""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Invalid Excel file")
 
@@ -321,17 +330,16 @@ async def import_solar_pv_ids(
     df.columns = [str(c).strip().lower().replace(" ", "_") for c in df.columns]
 
     updated_count, skipped = 0, []
-    # 预加载所有已存在的 PV 序列号以防重复
+    # 预加载所有已存在的 PV 序列号以防重复 (对 solar_pv_panels 和 solar_units 双重查重)
     existing_pv_set = set()
+    for row in db.execute(text("SELECT pv_sn FROM solar_pv_panels")).all():
+        if row[0]:
+            existing_pv_set.add(str(row[0]).strip())
     for row in db.execute(text("SELECT solar_equipment_id FROM solar_units WHERE solar_equipment_id IS NOT NULL")).all():
         if row[0]:
             existing_pv_set.add(str(row[0]).strip())
 
-    # 查询所有处于在库且尚未绑定 PV 板的主机设备按 ID 顺序排序
-    unbound_units = db.query(SolarUnit).filter(
-        or_(SolarUnit.solar_equipment_id == None, SolarUnit.solar_equipment_id == '')
-    ).order_by(SolarUnit.id.asc()).all()
-    unbound_index = 0
+    default_pdate = datetime.now() - timedelta(days=15)
 
     for idx, row in df.iterrows():
         # 支持多种别名表头：solar_panels / solar_panel / solar_equipment_id / pv_sn
@@ -349,29 +357,34 @@ async def import_solar_pv_ids(
             skipped.append(f"Row {idx+2}: Missing PV Serial Number (solar_panels)")
             continue
 
-        # 查重
+        # 查重：如果已经存在，直接跳过并提示
         if pv_id in existing_pv_set:
-            skipped.append(f"Row {idx+2}: PV ID '{pv_id}' already exists in system")
+            skipped.append(f"Row {idx+2}: PV ID '{pv_id}' already exists in system, skipped.")
             continue
 
-        unit = None
-        # 情况 1：如果 Excel 显式指定了主机 ID shs_machine_id
+        # 解析生产日期，若为空或格式无效，则默认设为当前时间的前15天
+        p_date = default_pdate
+        if row.get('production_date'):
+            parsed_date = pd.to_datetime(row.get('production_date'), errors='coerce')
+            if pd.notnull(parsed_date):
+                p_date = parsed_date.to_pydatetime()
+
+        # 写入全新解耦的 solar_pv_panels 数据库独立表！
+        new_pv = SolarPVPanel(
+            pv_sn=pv_id,
+            shs_machine_id=shs_id if shs_id else None,
+            status=1 if shs_id else 0, # 若带了主机说明属于预绑定，否则为 0 在库待绑定
+            production_date=p_date,
+            created_at=datetime.now()
+        )
+        db.add(new_pv)
+
+        # 同步：如果 Excel 显式指定了主机 ID，更新对应的 SolarUnit 记录中的 solar_equipment_id
         if shs_id:
             unit = db.query(SolarUnit).filter(SolarUnit.shs_machine_id == shs_id).first()
-            if not unit:
-                skipped.append(f"Row {idx+2}: Machine ID '{shs_id}' not found in database")
-                continue
-        else:
-            # 情况 2：单列纯 PV 列表，自动顺延匹配在库未绑定 PV 的设备
-            if unbound_index < len(unbound_units):
-                unit = unbound_units[unbound_index]
-                unbound_index += 1
-            else:
-                skipped.append(f"Row {idx+2}: No available in-stock machine to bind PV '{pv_id}'")
-                continue
+            if unit:
+                unit.solar_equipment_id = pv_id
 
-        unit.solar_equipment_id = pv_id
-        unit.updated_at = datetime.now()
         existing_pv_set.add(pv_id)
         updated_count += 1
 
@@ -379,12 +392,6 @@ async def import_solar_pv_ids(
         db.commit()
 
     return {"status": "success", "updated_count": updated_count, "skipped": skipped}
-
-    if batch:
-        db.add_all(batch)
-        db.commit()
-    
-    return {"status": "success", "imported": len(batch), "skipped": skipped}
 
 @router.post("/{unit_id}/reset")
 def reset_unit(
@@ -483,6 +490,52 @@ def export_solar_units(
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+# --- 新增：独立 PV 光伏板单独列表获取接口 (查物理表 solar_pv_panels) ---
+@router.get("/pv-list", response_model=SolarPVPanelList)
+def get_solar_pv_list(
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 50,
+    search: Optional[str] = Query(None),
+    status: Optional[int] = Query(None),
+    current_user: Any = Depends(get_current_user)
+):
+    """单独获取已录入系统中的 PV 光伏板独立列表 (查物理表 solar_pv_panels，支持状态筛选)"""
+    query = db.query(SolarPVPanel)
+
+    if status is not None:
+        query = query.filter(SolarPVPanel.status == status)
+
+    if search:
+        sf = f"%{search}%"
+        query = query.filter(or_(
+            SolarPVPanel.pv_sn.ilike(sf),
+            SolarPVPanel.shs_machine_id.ilike(sf),
+            SolarPVPanel.customer_name.ilike(sf)
+        ))
+
+    total = query.count()
+    pv_panels = query.order_by(SolarPVPanel.id.desc()).offset(skip).limit(limit).all()
+
+    items = []
+    for pv in pv_panels:
+        items.append({
+            "id": pv.id,
+            "pv_sn": pv.pv_sn,
+            "status": pv.status,
+            "shs_machine_id": pv.shs_machine_id or "-",
+            "customer_uuid": pv.customer_uuid or "-",
+            "customer_name": pv.customer_name or "-",
+            "city_name": pv.city or "-",
+            "town_name": pv.town or "-",
+            "production_date": pv.production_date,
+            "created_at": pv.created_at,
+            "bound_at": pv.bound_at,
+            "updated_at": pv.updated_at
+        })
+
+    return {"total": total, "items": items}
+
 @router.delete("/{unit_id}")
 def delete_unit(
     unit_id: int, 
@@ -499,3 +552,103 @@ def delete_unit(
     db.delete(unit)
     db.commit()
     return {"status": "success"}
+
+# --- 新增：独立 PV 光伏板手动创建/修改/损坏/删除接口 ---
+@router.post("/pv", response_model=SolarPVPanelItem)
+def create_solar_pv_panel(
+    pv_in: SolarPVPanelCreate,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """手动单个录入 PV 光伏板"""
+    sn = pv_in.pv_sn.strip().upper()
+    existing = db.query(SolarPVPanel).filter(SolarPVPanel.pv_sn == sn).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"PV Panel SN '{sn}' already exists.")
+
+    default_pdate = datetime.now() - timedelta(days=15)
+    p_date = pv_in.production_date or default_pdate
+
+    new_pv = SolarPVPanel(
+        pv_sn=sn,
+        status=0,
+        city=pv_in.city,
+        town=pv_in.town,
+        production_date=p_date,
+        created_at=datetime.now()
+    )
+    db.add(new_pv)
+    db.commit()
+    db.refresh(new_pv)
+    return {
+        "id": new_pv.id,
+        "pv_sn": new_pv.pv_sn,
+        "status": new_pv.status,
+        "shs_machine_id": new_pv.shs_machine_id or "-",
+        "customer_uuid": new_pv.customer_uuid or "-",
+        "customer_name": new_pv.customer_name or "-",
+        "city_name": new_pv.city or "-",
+        "town_name": new_pv.town or "-",
+        "production_date": new_pv.production_date,
+        "created_at": new_pv.created_at,
+        "bound_at": new_pv.bound_at,
+        "updated_at": new_pv.updated_at
+    }
+
+@router.put("/pv/{pv_id}")
+def update_solar_pv_panel(
+    pv_id: int,
+    pv_in: SolarPVPanelUpdate,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """修改/更新 PV 光伏板属性或状态 (支持标记为 3 损坏/报废)"""
+    pv = db.query(SolarPVPanel).filter(SolarPVPanel.id == pv_id).first()
+    if not pv:
+        raise HTTPException(status_code=404, detail="PV Panel not found")
+
+    if pv_in.pv_sn is not None:
+        new_sn = pv_in.pv_sn.strip().upper()
+        if new_sn != pv.pv_sn:
+            conflict = db.query(SolarPVPanel).filter(SolarPVPanel.pv_sn == new_sn).first()
+            if conflict:
+                raise HTTPException(status_code=400, detail=f"PV Panel SN '{new_sn}' already exists.")
+            pv.pv_sn = new_sn
+
+    if pv_in.status is not None:
+        if pv_in.status not in [0, 1, 2, 3]:
+            raise HTTPException(status_code=400, detail="Invalid status code. Must be 0 (Stock), 1 (Active), 2 (Blocked), or 3 (Damaged)")
+        pv.status = pv_in.status
+        # 若置为 0 (重置为在库) 或 3 (损坏解绑)，清空关联的主机和客户
+        if pv_in.status in [0, 3]:
+            pv.shs_machine_id = None
+            pv.customer_uuid = None
+            pv.customer_name = None
+            pv.bound_at = None
+
+    if pv_in.shs_machine_id is not None:
+        pv.shs_machine_id = pv_in.shs_machine_id.strip() if pv_in.shs_machine_id else None
+
+    if pv_in.customer_uuid is not None:
+        pv.customer_uuid = pv_in.customer_uuid.strip() if pv_in.customer_uuid else None
+
+    pv.updated_at = datetime.now()
+    db.commit()
+    return {"status": "success", "id": pv.id}
+
+@router.delete("/pv/{pv_id}")
+def delete_solar_pv_panel(
+    pv_id: int,
+    db: Session = Depends(get_db),
+    current_user: Any = Depends(get_finance_or_admin)
+):
+    """删除未绑定的 PV 光伏板"""
+    pv = db.query(SolarPVPanel).filter(SolarPVPanel.id == pv_id).first()
+    if not pv:
+        raise HTTPException(status_code=404, detail="PV Panel not found")
+    if pv.status == 1:
+        raise HTTPException(status_code=400, detail="Cannot delete an active bound PV Panel. Please unbind or mark as damaged first.")
+
+    db.delete(pv)
+    db.commit()
+    return {"status": "success", "message": f"PV Panel {pv.pv_sn} deleted"}

@@ -61,7 +61,8 @@ def get_customers(
 ):
     query = db.query(Customer).options(
         joinedload(Customer.region).joinedload(Region.parent),
-        selectinload(Customer.solar_units)
+        selectinload(Customer.solar_units),
+        selectinload(Customer.cards)
     )
 
     if expired_only:
@@ -94,11 +95,19 @@ def get_customers(
         display_region = c.region.name if c.region else "Unknown"
         if c.region and c.region.level == 2 and c.region.parent:
             display_region = f"{c.region.parent.name} - {c.region.name}"
-            
+
+        c_shs = c.solar_units[0].shs_machine_id if c.solar_units else "-"
+        c_pv = c.solar_units[0].solar_equipment_id if c.solar_units else "-"
+        c_card = c.cards[0].card_uuid if c.cards else "-"
+
         result.append({
             "id": c.id, "uuid": c.uuid, "first_name": c.first_name, "last_name": c.last_name,
             "gender": c.gender, "mobile": c.mobile, "email": c.email, "address": c.address,
             "region_id": c.region_id, "region_name": display_region, "is_bound": len(c.solar_units) > 0,
+            "shs_machine_id": c_shs or "-",
+            "pv_sn": c_pv or "-",
+            "solar_equipment_id": c_pv or "-",
+            "card_uuid": c_card or "-",
             "expiry_time": c.expiry_time, "created_at": c.created_at
         })
     return {"total": total, "items": result}

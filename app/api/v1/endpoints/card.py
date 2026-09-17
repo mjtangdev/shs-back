@@ -65,7 +65,7 @@ def get_cards(
         query = query.filter(or_(Card.card_number.ilike(sf), Card.card_uuid.ilike(sf)))
 
     total = query.count()
-    cards = query.order_by(Card.updated_at.desc()).offset(skip).limit(limit).all()
+    cards = query.order_by(Card.id.desc()).offset(skip).limit(limit).all()
 
     items = []
     for c in cards:

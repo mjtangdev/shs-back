@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI):
             logger.info("✅ Default accounts (superadmin/admin) created.")
 
         # 序列同步维护
-        tables = ["users", "customers", "cards", "solar_units", "transaction_logs", "regions", "pos_machines"]
+        tables = ["users", "customers", "cards", "solar_units", "solar_pv_panels", "transaction_logs", "regions", "pos_machines"]
         for table in tables:
             try:
                 max_id = db.execute(text(f"SELECT MAX(id) FROM {table}")).scalar() or 1
@@ -108,6 +108,19 @@ async def lifespan(app: FastAPI):
                     db.execute(text(f"SELECT setval('{seq}', {max_id}, true)"))
             except: pass
         db.commit()
+
+        # ==============================================================================
+        # ⚠️【一次性平滑迁移补丁 / MIGRATION PATCH】
+        # 作用：将老数据库中旧列解绑 NOT NULL 限制，并清理老系统自动生成的假 PV 序列号 (末尾带 1)
+        # 提示：首次上线升级跑完后，后续版本开发如需关闭，可将此代码块注释掉！
+        # ==============================================================================
+        try:
+            db.execute(text("ALTER TABLE solar_units ALTER COLUMN solar_equipment_id DROP NOT NULL;"))
+            db.execute(text("UPDATE solar_units SET solar_equipment_id = NULL WHERE solar_equipment_id = shs_machine_id || '1';"))
+            db.commit()
+        except Exception:
+            db.rollback()
+        # ==============================================================================
         db.close()
         logger.info("✅ Database ready and sequences synced.")
     except Exception as e:
@@ -198,11 +211,20 @@ async def protected_redoc_html(username: str = Depends(get_current_username)):
 async def get_open_api_endpoint(username: str = Depends(get_current_username)):
     return get_openapi(title=app.title, version=app.version, routes=app.routes)
 
-# CORS 配置
-origins = ["*"] # 调试阶段放开
+# CORS 配置：兼容 localhost 前端开发端口 (3000/3001/5173 等) 与 allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:5173",
+    ],
+    allow_origin_regex=r"https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

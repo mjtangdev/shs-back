@@ -1,0 +1,205 @@
+================================================================================
+           SHS POS 终端全量离线同步与资产绑定接口与协议文档 (最新版)
+================================================================================
+
+一、 接口基础说明 (General Info)
+--------------------------------------------------------------------------------
+基础 Base URL: http://<服务器IP>:8008/api/v1/pos-sync
+请求 Header:
+  Authorization: Bearer <Operator Token> (仅限业务员角色 Role=2 调用)
+  Content-Type: application/json
+
+
+二、 POS 下载白名单数据接口 (`GET /api/v1/pos-sync/bootstrap`)
+--------------------------------------------------------------------------------
+HTTP 方法: GET
+接口路径: /api/v1/pos-sync/bootstrap
+功能说明:
+  POS 终端一键启动或点击同步时调用，拉取当前业务员归属辖区内最新的白名单档案与资产池。
+  POS 收到后保存至本地 SQLite 数据库，用于无网/弱网环境离线开户与续费交易。
+
+响应 Example (JSON):
+{
+  "server_time": "2026-09-14T19:20:00.000000",
+  "provider": {
+    "name": "Default SHS Provider",
+    "tin": "TIN_INIT_0000",
+    "is_initialized": false
+  },
+  "daily_rate": 7.0,
+  "region_name": "Dagupan",
+  "is_locked": false,                      // 终端锁机标志 (true 则拦截 POS 离线扣费)
+
+  // 1. 客户白名单档案 (包含卡片与设备当前状态)
+  "customers": [
+    {
+      "id": 2,
+      "uuid": "03000001",
+      "first_name": "John",
+      "last_name": "Doe",
+      "card_uuid": "A1B2C3D4",            // 当前绑定的 IC 卡号
+      "shs_machine_id": "HT2026072000001",  // 当前绑定的 System Box 主机 SN
+      "status": 1,                        // 客户状态
+      "total_recharged_days": 30.0,      // 累计充值天数
+      "expiry_time": "2026-10-14T12:00:00",// 充值服务到期时间
+      "region_name": "Dagupan",
+      "created_at": "2026-08-01T10:00:00",
+      "updated_at": "2026-09-14T12:00:00"
+    }
+  ],
+
+  // 2. 在库未绑定 IC 卡片白名单池
+  "cards": [
+    {
+      "id": 10,
+      "card_uuid": "A1B2C3D4",
+      "card_number": "00880001",
+      "status": 0,
+      "created_at": "2026-08-01T10:00:00",
+      "bound_at": null
+    }
+  ],
+
+  // 3. 在库未绑定 System Box 主机白名单池
+  "solar_units": [
+    {
+      "id": 15,
+      "shs_machine_id": "HT2026072000001",
+      "solar_equipment_id": null,           // 初始为空，待后续绑定 PV
+      "radio_id": "HT20260720000012",
+      "flashlight_id": "HT20260720000013",
+      "led_light_id": "HT20260720000014",
+      "shs_status": 0,
+      "customer_uuid": null,
+      "updated_at": "2026-09-14T10:00:00"
+    }
+  ],
+
+  // 4. 【最新】在库未绑定独立 PV 太阳能光伏板白名单池
+  "pv_panels": [
+    {
+      "id": 101,
+      "pv_sn": "CP26N-2-000001",           // 独立 PV 光伏板 SN
+      "status": 0,                        // 0: 在库待绑定
+      "shs_machine_id": null,             // 绑定的主机 SN (若未绑定为 null)
+      "customer_uuid": null,              // 绑定的客户 UUID
+      "updated_at": "2026-09-14T10:00:00"
+    }
+  ],
+
+  // 5. 历史交易参考池 (最近 1000 条)
+  "transactions": [
+    {
+      "transaction_id": "TX_POS01_20260914_001",
+      "customer_uuid": "03000001",
+      "card_uuid": "A1B2C3D4",
+      "days": 30.0,
+      "amount": 210.0,
+      "transaction_time": "2026-09-14T12:30:00",
+      "shs_machine_id": "HT2026072000001",
+      "action_type": "RECHARGE",
+      "operator_username": "opera01"
+    }
+  ]
+}
+
+
+三、 POS 离线数据批量上传接口 (`POST /api/v1/pos-sync/upload`)
+--------------------------------------------------------------------------------
+HTTP 方法: POST
+接口路径: /api/v1/pos-sync/upload
+功能说明:
+  POS 终端恢复连网后，将离线积累的开户、资产变动、交易流水一次性上传给服务端。
+  后端自动完成防重去重、客户 ID 冲突修复（Collision Healing）、资产一键绑定与平滑替换。
+
+请求 Payload (JSON):
+{
+  "pos_sn": "POS202609001",               // POS 终端序列号
+
+  // A. 离线新建客户 (新开户记录)
+  "new_registrations": [
+    {
+      "uuid": "03000002",                  // POS 本地生成的临时/雪花算法客户 UUID
+      "first_name": "Mary",
+      "last_name": "Smith",
+      "mobile": "09123456789",
+      "gender": "female",
+      "address": "Street 123",
+      "region_id": 3,                      // 归属区域 ID
+      "beneficiary_count": 0,
+      "representative_name": null,
+      "rep_relationship": "-",
+
+      // 现场开户并扫码绑定的资产 (不传或传 "-" 自动清洗为 null)
+      "card_uuid": "B2C3D4E5",             // 扫描的 IC 卡
+      "shs_machine_id": "HT2026072000002", // 扫描的 System Box 主机 SN
+      "pv_sn": "CP26N-2-000002",          // 扫描的 PV 太阳能板 SN (兼容 solar_equipment_id)
+      "created_at": "2026-09-14T12:00:00", // POS 端实际开户时间
+      "operator_username": "opera01"       // 业务员用户名
+    }
+  ],
+
+  // B. 离线资产安装与更换 (换卡 / 换主机 / 换 PV 板)
+  "asset_installations": [
+    {
+      "customer_uuid": "03000001",         // 目标客户 UUID
+      "card_uuid": "A1B2C3D4",            // 【换卡/绑卡】扫描的新卡号 (不换传 null 或 "-")
+      "shs_machine_id": "HT2026072000001",// 【换主机/绑主机】扫描的新主机 SN (不换传 null 或 "-")
+      "pv_sn": "CP26N-2-000001",          // 【换PV板/绑PV板】扫描的新 PV 板 SN (不换传 null 或 "-")
+      "installed_at": "2026-09-14T12:30:00"
+    }
+  ],
+
+  // C. 离线充值交易流水
+  "transactions": [
+    {
+      "transaction_id": "TX_POS01_20260914_001", // POS 端生成的唯一交易流水 ID (幂等去重键)
+      "customer_uuid": "03000001",
+      "card_uuid": "A1B2C3D4",
+      "shs_machine_id": "HT2026072000001",
+      "days": 30.0,                              // 充值天数
+      "amount": 210.0,                           // 充值金额
+      "transaction_time": "2026-09-14T12:30:00",
+      "action_type": "RECHARGE",                 // RECHARGE (充值)
+      "operator_username": "opera01",
+      "latitude": null,
+      "longitude": null
+    }
+  ]
+}
+
+响应 Example (JSON):
+{
+  "status": "success",
+  "new_customers": 1,
+  "transactions": 1,
+  "is_locked": false,                      // 返回 POS 当前是否处于锁定状态
+  "server_time": "2026-09-14 19:20:00"
+}
+
+
+四、 后端自动清洗与核心业务逻辑 (Internal Rules)
+--------------------------------------------------------------------------------
+1. 空值智能清洗 (Null Value Normalization):
+   POS 端传入的 "-", "", "null", "NULL", "None" 等无意义空字符，后端统一自动清洗为 Python/SQL 中的 NULL/None，绝不造成数据库垃圾污染。
+
+2. ID 冲突自愈机制 (Collision Healing):
+   若离线新建的客户 UUID 在服务端冲突，后端会自动分配全局唯一新 ID，并同步修复该批次中的交易流水和资产绑定。
+
+3. 资产替换与继承规则 (Asset Replacement):
+   a. 只换 PV 板: 旧 PV 标记为 3 (Damaged 报废)，新 PV 激活并绑给主机与客户。
+   b. 只换主机: 旧主机解绑报废，新主机自动继承原客户未损坏的旧 PV 板序列号。
+   c. 零流水绑定: 即使 transactions 数组为空 []，单纯上传资产绑定也会 100% 成功执行。
+
+
+五、 POS App 交互与缓存清理规范 (Client UI & Cache Specs)
+--------------------------------------------------------------------------------
+1. 缓存清理触发时机 (Cache Clearing Timing):
+   a. 开卡/激活中断/中途退出场景:
+      当业务员在开卡流程中取消或退回到【开卡设备列表】界面时，POS 客户端必须立即清理本次开卡流程中产生的临时表单与扫描缓存，防止残留数据污染下一次开卡。
+   b. 开卡/激活成功场景:
+      当开卡/激活流程顺利完成，业务员在“成功页”点击【返回首页】按钮时，POS 客户端清理本次开卡缓存并重置状态。
+
+2. UI 按钮界面调整 (UI Button Removal):
+   a. 移除【给其他人充值 (Recharge for Others)】功能按钮/菜单入口。
+================================================================================
