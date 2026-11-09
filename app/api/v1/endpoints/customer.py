@@ -27,25 +27,36 @@ def get_snowflake_id():
 
 def generate_customer_uuid(db: Session, region_id: int):
     """
-    基于地区生成的 8 位客户 ID：RegionPrefix (2位) + 序列 (6位)
-    例如：Region 3 -> 03000001
+    基于地区生成的严格 8 位纯数字客户 ID：2位地区前缀 + 6位顺序递增号
+    总位数 100% 严格固定为 8 位数字 (例如 11000001, 20000001)
     """
-    prefix = f"{region_id:02d}"
-    # 查找该地区当前最大的业务编号
-    max_id = db.query(func.max(Customer.uuid)).filter(Customer.uuid.like(f'{prefix}%')).scalar()
+    prefix_num = (int(region_id or 1) % 90) + 10
+    prefix = f"{prefix_num:02d}"
     
-    if not max_id:
-        return f"{prefix}000001"
-    
-    try:
-        # 截取前缀后的数字部分并自增
-        current_num_str = max_id[len(prefix):]
-        next_num = int(current_num_str) + 1
-        return f"{prefix}{next_num:06d}"
-    except Exception as e:
-        # 异常兜底：使用时间戳后缀保证唯一性
-        logger.warning(f"ID generation fallback for region {region_id}: {e}")
-        return f"{prefix}{datetime.now().strftime('%H%M%S')}"
+    max_id = db.query(func.max(Customer.uuid)).filter(
+        Customer.uuid.like(f'{prefix}%'),
+        func.length(Customer.uuid) == 8
+    ).scalar()
+
+    seq = 1
+    if max_id and len(max_id) == 8:
+        try:
+            seq = int(max_id[2:]) + 1
+        except Exception:
+            seq = 1
+
+    candidate = f"{prefix}{seq:06d}"
+
+    # 碰撞自增循环，始终保持严格 8 位总长度
+    while db.query(Customer).filter(Customer.uuid == candidate).first():
+        seq += 1
+        if seq > 999999:
+            seq = 1
+            prefix_num = ((prefix_num + 1) % 90) + 10
+            prefix = f"{prefix_num:02d}"
+        candidate = f"{prefix}{seq:06d}"
+
+    return candidate
 
 # --- 1. 获取列表 ---
 @router.get("/")

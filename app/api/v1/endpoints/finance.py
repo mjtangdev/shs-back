@@ -215,26 +215,43 @@ def export_finance_records(
 @router.get("/export-customer-summary")
 def export_customer_summary(
     db: Session = Depends(get_db),
+    start_date: Optional[date] = Query(None),
+    end_date: Optional[date] = Query(None),
+    search: Optional[str] = Query(None),
     region_id: Optional[int] = Query(None),
     current_user: User = Depends(get_current_user)
 ):
     """
-    财务汇总导出：按客户统计所有充值数据
+    财务汇总导出：按客户统计所有充值数据（支持日期、搜索及地区过滤）
     包含：客户ID, 姓名, 地区, 卡号, 设备ID, 总次数, 总天数, 总金额
     """
     if current_user.role not in [0, 1, 3]:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # 1. 基础查询：通过 TransactionLog 聚合
-    # 只统计 RECHARGE 类型
+    # 1. 基础查询：通过 TransactionLog 聚合，支持日期与搜索筛选
     summary_query = db.query(
         TransactionLog.customer_uuid,
         func.count(TransactionLog.id).label("total_count"),
         func.sum(TransactionLog.days).label("total_days"),
         func.sum(TransactionLog.amount).label("total_amount")
-    ).filter(TransactionLog.action_type == 'RECHARGE').group_by(TransactionLog.customer_uuid)
+    ).filter(TransactionLog.action_type == "RECHARGE")
 
-    summary_results = summary_query.all()
+    if start_date:
+        summary_query = summary_query.filter(TransactionLog.transaction_time >= datetime.combine(start_date, datetime.min.time()))
+    if end_date:
+        summary_query = summary_query.filter(TransactionLog.transaction_time < datetime.combine(end_date + timedelta(days=1), datetime.min.time()))
+    if search:
+        search_filter = f"%{search}%"
+        summary_query = summary_query.filter(
+            or_(
+                TransactionLog.transaction_id.ilike(search_filter),
+                TransactionLog.customer_uuid.ilike(search_filter),
+                TransactionLog.operator_username.ilike(search_filter),
+                TransactionLog.pos_sn.ilike(search_filter)
+            )
+        )
+
+    summary_results = summary_query.group_by(TransactionLog.customer_uuid).all()
 
     # 2. 获取所有涉及的客户详情
     customer_uuids = [r[0] for r in summary_results]
@@ -246,10 +263,26 @@ def export_customer_summary(
 
     cust_map = {c.uuid: c for c in customers}
 
+    # 3. 地区层级递归解析 (如果前端传了 region_id)
+    allowed_region_ids = None
+    if region_id:
+        allowed_region_ids = [region_id]
+        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+        if children:
+            child_ids = [c[0] for c in children]
+            allowed_region_ids.extend(child_ids)
+            sub_children = db.query(Region.id).filter(Region.parent_id.in_(child_ids)).all()
+            allowed_region_ids.extend([sc[0] for sc in sub_children])
+
     data = []
     for uuid, count, days, amount in summary_results:
         c = cust_map.get(uuid)
         if not c: continue
+
+        # 地区过滤 (如果指定了 region_id，不在该地区内的客户剔除)
+        if allowed_region_ids is not None:
+            if c.region_id not in allowed_region_ids:
+                continue
 
         # 地区解析
         region_name = "-"
@@ -258,12 +291,6 @@ def export_customer_summary(
                 region_name = f"{c.region.parent.name} - {c.region.name}"
             else:
                 region_name = c.region.name
-
-        # 地区过滤 (如果前端传了 region_id)
-        if region_id:
-            # 这里简单处理，如果客户不在该地区则跳过
-            # 也可以优化为在 SQL 层级过滤
-            pass
 
         # 资产解析
         card_uuid = c.cards[0].card_uuid if c.cards else "-"
@@ -276,8 +303,8 @@ def export_customer_summary(
             "Card UID": card_uuid,
             "SHS Machine ID": machine_id,
             "Total Loads": count,
-            "Total Days": float(days),
-            "Total Revenue (PHP)": float(amount)
+            "Total Days": float(days) if days else 0.0,
+            "Total Revenue (PHP)": float(amount) if amount else 0.0
         })
 
     if not data:
@@ -287,11 +314,11 @@ def export_customer_summary(
         df = pd.DataFrame(data)
 
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Customer-Financial-Summary')
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Customer-Financial-Summary")
 
     output.seek(0)
-    filename = f"Customer_Financial_Summary_{datetime.now().strftime('%Y%m%d')}.xlsx"
+    filename = f"Customer_Financial_Summary_{datetime.now().strftime("%Y%m%d")}.xlsx"
 
     return StreamingResponse(
         output,

@@ -1,4 +1,6 @@
 import io
+import re
+import logging
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Any, Optional, List
@@ -6,6 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, text
+
+logger = logging.getLogger(__name__)
 
 from app.api.deps import get_db, get_current_user, get_finance_or_admin
 from app.models.solar_device import SolarUnit, SolarPVPanel
@@ -419,76 +423,117 @@ def export_solar_units(
     status: Optional[int] = Query(None),
     current_user: Any = Depends(get_finance_or_admin)
 ):
-    """导出设备全维度报表"""
-    query = db.query(SolarUnit).outerjoin(
-        Customer, SolarUnit.customer_uuid == Customer.uuid
-    ).options(
-        joinedload(SolarUnit.customer).joinedload(Customer.region).joinedload(Region.parent)
-    )
+    """导出设备全维度报表 (全面强壮版，无缝对齐生产环境 DB)"""
+    try:
+        query = db.query(SolarUnit)
 
-    if status is not None:
-        query = query.filter(SolarUnit.shs_status == status)
+        if status is not None:
+            query = query.filter(SolarUnit.shs_status == status)
 
-    if region_id:
-        allowed_ids = [region_id]
-        children = db.query(Region.id).filter(Region.parent_id == region_id).all()
-        if children:
-            c_ids = [c[0] for c in children]
-            allowed_ids.extend(c_ids)
-            sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
-            allowed_ids.extend([sc[0] for sc in sub_children])
-        query = query.filter(Customer.region_id.in_(allowed_ids))
+        if region_id:
+            allowed_ids = [region_id]
+            children = db.query(Region.id).filter(Region.parent_id == region_id).all()
+            if children:
+                c_ids = [c[0] for c in children]
+                allowed_ids.extend(c_ids)
+                sub_children = db.query(Region.id).filter(Region.parent_id.in_(c_ids)).all()
+                allowed_ids.extend([sc[0] for sc in sub_children])
+            
+            matching_cust_uuids = [
+                c[0] for c in db.query(Customer.uuid).filter(Customer.region_id.in_(allowed_ids)).all() if c[0]
+            ]
+            query = query.filter(SolarUnit.customer_uuid.in_(matching_cust_uuids))
 
-    units = query.all()
-    export_data = []
-    
-    status_map = {0: "In Stock", 1: "Active", 2: "Damaged"}
+        units = query.all()
 
-    for u in units:
-        city_name, town_name = "-", "-"
-        # 👈 核心修复：优先从关联的 Customer 对象获取姓名
-        owner_name = u.customer_name or "-"
-        if u.customer:
-            owner_name = f"{u.customer.first_name} {u.customer.last_name}"
-            if u.customer.region:
-                reg = u.customer.region
-                if reg.level == 2:
-                    town_name = reg.name
-                    city_name = reg.parent.name if reg.parent else "-"
-                else:
-                    city_name = reg.name
-        elif u.city or u.town:
-            city_name = u.city or "-"
-            town_name = u.town or "-"
+        # 预加载所有 Customer 对象并建立内存索引 (极速，零 ORM 死锁/延迟加载错)
+        customers = db.query(Customer).options(
+            joinedload(Customer.region).joinedload(Region.parent)
+        ).all()
+        cust_map = {c.uuid: c for c in customers if c.uuid}
 
-        export_data.append({
-            "Machine ID": u.shs_machine_id,
-            "Solar Panel ID": u.solar_equipment_id,
-            "Radio ID": u.radio_id,
-            "Flashlight ID": u.flashlight_id,
-            "LED ID": u.led_light_id,
-            "Status": status_map.get(u.shs_status, "Unknown"),
-            "Owner": owner_name, # 👈 使用修复后的变量
-            "Municipality": city_name,
-            "Barangay": town_name,
-            "Production Date": u.production_date.strftime("%Y-%m-%d") if u.production_date else "-",
-            "Bound Date": u.bound_at.strftime("%Y-%m-%d") if u.bound_at else "-"
-        })
+        export_data = []
+        status_map = {0: "In Stock", 1: "Active", 2: "Damaged"}
 
-    df = pd.DataFrame(export_data)
-    
-    # 直接导出为 Excel (.xlsx) 格式
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Inventory')
-    
-    output.seek(0)
-    filename = f"SHS_Inventory_{datetime.now().strftime('%Y%m%d')}.xlsx"
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={filename}"}
-    )
+        for u in units:
+            city_name, town_name = "-", "-"
+            owner_name = u.customer_name or "-"
+
+            cust = cust_map.get(u.customer_uuid) if u.customer_uuid else None
+            if cust:
+                owner_name = f"{cust.first_name or ''} {cust.last_name or ''}".strip() or "-"
+                reg = cust.region
+                if reg:
+                    town_name = reg.name or "-"
+                    if reg.parent:
+                        city_name = reg.parent.name or "-"
+            elif u.city or u.town:
+                city_name = u.city or "-"
+                town_name = u.town or "-"
+
+            p_date_str = "-"
+            if u.production_date:
+                try:
+                    if hasattr(u.production_date, "strftime"):
+                        p_date_str = u.production_date.strftime("%Y-%m-%d")
+                    else:
+                        p_date_str = str(u.production_date)[:10]
+                except Exception:
+                    p_date_str = str(u.production_date)[:10]
+
+            b_date_str = "-"
+            if u.bound_at:
+                try:
+                    if hasattr(u.bound_at, "strftime"):
+                        b_date_str = u.bound_at.strftime("%Y-%m-%d")
+                    else:
+                        b_date_str = str(u.bound_at)[:10]
+                except Exception:
+                    b_date_str = str(u.bound_at)[:10]
+
+            def _clean(v):
+                if not v or pd.isna(v): return "-"
+                s = str(v)
+                return re.sub(r'[\x00-\x08\x0b-\x0c\x0e-\x1f]', '', s).strip() or "-"
+
+            export_data.append({
+                "Machine ID": _clean(u.shs_machine_id),
+                "Solar Panel ID": _clean(u.solar_equipment_id),
+                "Radio ID": _clean(u.radio_id),
+                "Flashlight ID": _clean(u.flashlight_id),
+                "LED ID": _clean(u.led_light_id),
+                "Status": _clean(status_map.get(u.shs_status, "Unknown")),
+                "Owner": _clean(owner_name),
+                "Municipality": _clean(city_name),
+                "Barangay": _clean(town_name),
+                "Production Date": _clean(p_date_str),
+                "Bound Date": _clean(b_date_str)
+            })
+
+        df = pd.DataFrame(export_data)
+        if df.empty:
+            df = pd.DataFrame(columns=[
+                "Machine ID", "Solar Panel ID", "Radio ID", "Flashlight ID", "LED ID",
+                "Status", "Owner", "Municipality", "Barangay", "Production Date", "Bound Date"
+            ])
+
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Inventory')
+        
+        output.seek(0)
+        filename = f"SHS_Inventory_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Access-Control-Expose-Headers": "Content-Disposition"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error exporting solar units: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")
 
 # --- 新增：独立 PV 光伏板单独列表获取接口 (查物理表 solar_pv_panels) ---
 @router.get("/pv-list", response_model=SolarPVPanelList)

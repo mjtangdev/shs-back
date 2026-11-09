@@ -372,7 +372,10 @@ async def admin_register_solar_unit(
     if existing:
         raise HTTPException(status_code=400, detail="Registration Failed: This Solar Machine ID is already registered.")
     
-    s_id, r_id, f_id, l_id = f"{shs_id}1", f"{shs_id}2", f"{shs_id}3", f"{shs_id}4"
+    s_id = unit_in.solar_equipment_id.strip() if unit_in.solar_equipment_id and unit_in.solar_equipment_id.strip() else None
+    r_id = unit_in.radio_id or f"{shs_id}2"
+    f_id = unit_in.flashlight_id or f"{shs_id}3"
+    l_id = unit_in.led_light_id or f"{shs_id}4"
 
     try:
         new_unit = SolarUnit(

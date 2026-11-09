@@ -1,5 +1,5 @@
-from typing import Generator
-from fastapi import Depends, HTTPException, status
+from typing import Generator, Optional
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
 import jwt
 from sqlalchemy.orm import Session
@@ -8,7 +8,7 @@ from app.db.session import SessionLocal
 from app.models.users import User
 
 # 令牌地址应与 api.py 中的挂载路径一致
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/token", auto_error=False)
 
 def get_db() -> Generator:
     db = SessionLocal()
@@ -17,8 +17,16 @@ def get_db() -> Generator:
     finally:
         db.close()
 
-# 1级安检：只要 Token 有效就行
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)) -> User:
+# 1级安检：只要 Token 有效就行 (同时支持 Header 中的 Bearer Token 和 URL 查询参数中的 ?token=)
+def get_current_user(
+    db: Session = Depends(get_db), 
+    token_query: Optional[str] = Query(None, alias="token"),
+    token_header: Optional[str] = Depends(oauth2_scheme)
+) -> User:
+    token = token_header or token_query
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated: Missing token")
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: str = payload.get("sub")
@@ -37,15 +45,15 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
         
     return user
 
-# 2级安检：仅限管理员(1) 或 财务(3) (超级管理员0和业务员2无权)
+# 2级安检：允许超级管理员(0)、管理员(1)、财务(3)、管理层(4)
 def get_finance_or_admin(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role not in [1, 3]:
-        raise HTTPException(status_code=403, detail="Permission denied: Finance (3) or Admin (1) access only")
+    if current_user.role not in [0, 1, 3, 4]:
+        raise HTTPException(status_code=403, detail="Permission denied: Finance or Admin access required")
     return current_user
 
-# 3级安检：仅限管理员(1) (超级管理员0、财务2和业务员3无权)
+# 3级安检：允许超级管理员(0) 或 管理员(1)
 def get_current_admin_user(current_user: User = Depends(get_current_user)) -> User:
-    if current_user.role != 1:
+    if current_user.role not in [0, 1]:
         raise HTTPException(status_code=403, detail="Permission denied: Admin access required")
     return current_user
 

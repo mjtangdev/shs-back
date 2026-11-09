@@ -126,12 +126,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"❌ Startup error: {e}")
 
-    # 定时备份 (生产模式：每天 0点 和 12点 各执行一次)
+    # 定时备份 (生产模式：每天 08:30, 12:30, 16:30, 00:00 各自动执行一次全量 .sql 脚本备份)
     from apscheduler.schedulers.background import BackgroundScheduler
     from app.core.backup import perform_db_backup
     scheduler = BackgroundScheduler()
-    # 使用 cron 触发器，在 0:00 和 12:00 备份
-    scheduler.add_job(perform_db_backup, 'cron', hour='0,12', minute=0)
+    # 触发点 1: 08:30, 12:30, 16:30
+    scheduler.add_job(perform_db_backup, 'cron', hour='8,12,16', minute=30)
+    # 触发点 2: 00:00
+    scheduler.add_job(perform_db_backup, 'cron', hour=0, minute=0)
     scheduler.start()
     yield
     scheduler.shutdown()
@@ -189,6 +191,24 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         },
     )
 
+# --- 全局 500 异常处理 (带 CORS 跨域标头) ---
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"❌ Global Exception on {request.url.path}: {exc}", exc_info=True)
+    response = JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "status": "error",
+            "message": "服务器内部错误 (500)",
+            "detail": str(exc)
+        }
+    )
+    origin = request.headers.get("origin")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
 # --- 自定义文档路由 ---
 @app.get("/docs", include_in_schema=False)
 async def protected_swagger_ui_html(username: str = Depends(get_current_username)):
@@ -211,6 +231,42 @@ async def protected_redoc_html(username: str = Depends(get_current_username)):
 async def get_open_api_endpoint(username: str = Depends(get_current_username)):
     return get_openapi(title=app.title, version=app.version, routes=app.routes)
 
+# 兜底 CORS 响应头中间件：确保所有跨域请求与状态码 (200, 401, 403, 500) 均 100% 遵守 W3C 规范并携带 CORS 响应头
+@app.middleware("http")
+async def add_cors_headers_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    req_headers = request.headers.get("access-control-request-headers") or "Content-Type, Authorization, X-Requested-With, Accept, Origin"
+
+    if request.method == "OPTIONS":
+        response = JSONResponse(status_code=200, content={"status": "ok"})
+        response.headers["Access-Control-Allow-Origin"] = origin or "*"
+        if origin:
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = req_headers
+        else:
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        return response
+
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        logger.error(f"❌ Handled Middleware Exception: {exc}", exc_info=True)
+        response = JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": "Internal Server Error", "detail": str(exc)}
+        )
+
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    else:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+
+    response.headers["Access-Control-Expose-Headers"] = "Content-Disposition, content-disposition, Authorization, *"
+    return response
+
 # CORS 配置：兼容 localhost 前端开发端口 (3000/3001/5173 等) 与 allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
@@ -228,7 +284,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
+    expose_headers=["Content-Disposition", "content-disposition", "Authorization", "*"],
 )
 
 # 挂载静态资源

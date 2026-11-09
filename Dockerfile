@@ -53,7 +53,7 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.t
 # 复制源码
 COPY . .
 
-EXPOSE 8000
+EXPOSE 8008
 
-# 使用 uvicorn 启动
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# 使用 uvicorn 启动，统一使用 8008 端口
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8008", "--proxy-headers"]
